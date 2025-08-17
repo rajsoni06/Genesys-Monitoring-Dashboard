@@ -2,8 +2,7 @@
 
 Welcome to the **Genesys Cloud Health Check Dashboard (HCD)** — a professional, secure, and efficient tool designed to streamline daily health check operations for the PepsiCo project at Cognizant.
 
-<img width="1919" height="865" alt="image" src="https://github.com/user-attachments/assets/03ffcf3f-afad-47ef-8e47-93475e6056d1" />
-<img width="1918" height="866" alt="image" src="https://github.com/user-attachments/assets/8a19a70e-fc75-4d4a-8f05-2175455744fe" />
+<img width="1919" height="865" alt="image" src="https://github.com/user-attachments/assets/2d08961d-116f-46e4-b86a-6600fde0bfb9" />
 
 > ⚡ Designed to reduce 60–70 minutes of manual checks down to just 5 minutes!
 
