@@ -1,0 +1,14 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/proxy/*"
+  to = "https://86dfqxwd74.execute-api.us-east-1.amazonaws.com/Pre-prod/:splat"
+  status = 200

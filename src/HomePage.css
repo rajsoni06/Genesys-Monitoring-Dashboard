@@ -1,0 +1,49 @@
+.gradient-bg {
+  background: linear-gradient(120deg, #1e293b 0%, #0f172a 60%, #2563eb 100%);
+  background-size: 200% 200%;
+  transition: background-position 1.2s cubic-bezier(.4,0,.2,1);
+}
+.glass-card {
+  background: rgba(255,255,255,0.07);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  box-shadow: 0 2px 16px 0 rgba(37,99,235,0.08);
+}
+.clock-card {
+  background: #1e293b;
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px 0 rgba(37,99,235,0.10);
+  transition: box-shadow 0.3s;
+}
+.clock-card:hover {
+  box-shadow: 0 4px 16px 0 rgba(37,99,235,0.18);
+}
+.neon-cyan {
+  filter: drop-shadow(0 0 2px #22d3ee);
+}
+.neon-emerald {
+  filter: drop-shadow(0 0 2px #39ff14);
+}
+.neon-red {
+  filter: drop-shadow(0 0 2px #ff1744);
+}
+.neon-yellow {
+  filter: drop-shadow(0 0 2px #fde047);
+}
+.pulse-arrow {
+  animation: pulse-arrow 1.2s infinite alternate;
+}
+@keyframes pulse-arrow {
+  0% { filter: drop-shadow(0 0 2px #39ff14) brightness(1.2); }
+  50% { filter: drop-shadow(0 0 12px #39ff14) brightness(2); }
+  100% { filter: drop-shadow(0 0 2px #39ff14) brightness(1.2); }
+}
+.pulse-arrow-red {
+  animation: pulse-arrow-red 1.2s infinite alternate;
+}
+@keyframes pulse-arrow-red {
+  0% { filter: drop-shadow(0 0 2px #ff1744) brightness(1.2); }
+  50% { filter: drop-shadow(0 0 12px #ff1744) brightness(2); }
+  100% { filter: drop-shadow(0 0 2px #ff1744) brightness(1.2); }
+}

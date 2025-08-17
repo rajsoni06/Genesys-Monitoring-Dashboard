@@ -1,0 +1,18 @@
+.pulsating-path {
+  animation: pulsate 2s infinite;
+}
+
+@keyframes pulsate {
+  0% {
+    stroke-width: 0.5;
+    stroke-opacity: 0.5;
+  }
+  50% {
+    stroke-width: 1.5;
+    stroke-opacity: 1;
+  }
+  100% {
+    stroke-width: 0.5;
+    stroke-opacity: 0.5;
+  }
+}
