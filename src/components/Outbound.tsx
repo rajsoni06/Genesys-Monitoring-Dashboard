@@ -144,7 +144,7 @@ const Outbound = () => {
       icon: <AlertCircle className="w-6 h-6 text-orange-400" />,
       description:
         "Contacts not dialed during the day are marked as past due. These records are automatically carried forward to the next day's dialer file for retry in future campaigns.",
-      position: "left-[75%] top-[75%]",
+      position: "left-[75%] top-[72%]",
       color: "border-orange-400",
       stepText: nodeToStepMap["past-due-records"],
     },
@@ -242,7 +242,6 @@ const Outbound = () => {
       to: "genesys-cloud",
       label: "",
       showDots: true,
-      curve: true,
     },
     {
       from: "aws-sftp",
@@ -318,7 +317,7 @@ const Outbound = () => {
   const getPulseOffset = (index: number) => (pulsePhase + index * 10) % 60;
 
   return (
-    <div className="p-4 font-sans bg-slate-900 text-white">
+    <div className="mt-[-1rem] p-4 font-sans bg-slate-900 text-white">
       <div className="flex flex-col items-center mb-1">
         <h1 className="text-xl font-bold text-white">
           Outbound Call Flow Architecture

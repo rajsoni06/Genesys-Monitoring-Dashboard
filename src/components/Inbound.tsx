@@ -59,9 +59,8 @@ const Inbound = () => {
     queues: "6. Queue Assignment",
     agent: "7. Agent Interaction",
     "post-call-survey": "8. Post-Call Survey",
-    successkpi: "9. Quality Evaluation",
-    pureinsights: "10. Reporting",
-    backup: "11. Recording Storage",
+    pureinsights: "9. Quality Evaluation & Reporting",
+    backup: "10. Recording Storage",
   };
 
   const nodes: NodeType[] = [
@@ -100,7 +99,7 @@ const Inbound = () => {
       title: "Google Dialogflow (GDF)",
       icon: <MessageSquare className="w-6 h-6 text-purple-400" />,
       description:
-        "Integrated inside the Architect flow as a Call Dialogflow CX Bot. Handles language selection (via DTMF or voice) and performs COF (Customer Onboarding Form) authentication. While not a full AI bot, it uses basic NLU for prompt-based responses in Account Acquisition. Based on COF validation, eligibility codes, and PDSR values, it presents self-service menu options or routes to an agent.",
+        "Google Dialogflow CX is integrated within the Architect flow as a call bot. It manages language selection (via DTMF or voice) and performs Customer Onboarding Form (COF) authentication. Using basic Natural Language Understanding (NLU), it provides prompt-based responses for Account Acquisition. Based on COF validation, eligibility codes, and PDSR values, it either offers self-service options or routes the call to an agent.",
       position: "left-[46%] top-[20%]",
       color: "border-purple-400",
       stepText: nodeToStepMap["dialogflow"],
@@ -110,7 +109,7 @@ const Inbound = () => {
       title: "Oracle Siebel CRM",
       icon: <Server className="w-6 h-6 text-orange-400" />,
       description:
-        "Acts as the CRM backend. COF validation requests from IVR are sent to Siebel via APIs. If valid, customer data is retrieved and displayed to the agent using the IWS (Interaction Workspace) connector deployed on the Siebel server. After the call, the agent enters a wrap-up code summarizing the interaction.",
+        "Acts as the CRM backend. COF validation requests from IVR are sent to Siebel via APIs. If valid, customer data is retrieved and displayed to the agent using the IWS (Interaction Workspace) connector deployed on the Siebel server. After the call, agents enter wrap-up codes, outcomes, tickets, and case notes, which are written back into Siebel CRM, keeping it the single source of truth.",
       position: "left-[58%] top-[50%]",
       color: "border-orange-400",
       stepText: nodeToStepMap["siebel"],
@@ -130,28 +129,19 @@ const Inbound = () => {
       title: "Agent Desktop (Siebel + GCBA)",
       icon: <User className="w-6 h-6 text-cyan-400" />,
       description:
-        "Agents handle the call through the Siebel interface, integrated with Genesys Cloud. GCBA (Genesys Cloud Background Assist) automatically starts screen recording when a call connects, ensuring compliance and quality checks. Existing customer records auto-populate to reduce handling time.",
+        "Agents handle calls through the Siebel interface, integrated with Genesys Cloud. GCBA (Genesys Cloud Background Assist) automatically starts screen recording when a call connects, ensuring compliance and quality checks. Customer records are auto-populated from Siebel to reduce handling time. After each call, agent updates such as outcomes, tickets, and case notes are written back into Siebel CRM, ensuring real-time synchronization and making Siebel the single source of truth.",
       position: "left-[78%] top-[50%]",
       color: "border-cyan-400",
       stepText: nodeToStepMap["agent"],
     },
-    {
-      id: "successkpi",
-      title: "Success KPIs",
-      icon: <ClipboardList className="w-6 h-6 text-pink-400" />,
-      description:
-        "Post-call, QA teams use Success KPIs to evaluate agent performance. Genesys APIs fetch call recordings by COF or Interaction ID. Evaluation forms track metrics like AHT, compliance adherence, and customer satisfaction scores, driving continuous improvement.",
-      position: "left-[63%] top-[20%]",
-      color: "border-pink-400",
-      stepText: nodeToStepMap["successkpi"],
-    },
+
     {
       id: "pureinsights",
       title: "PureInsights Reporting",
       icon: <BarChart2 className="w-6 h-6 text-indigo-400" />,
       description:
-        "Generates operational and strategic reports, including call volume trends, agent efficiency, abandoned call rates, and customer satisfaction. Supports both standard and custom reports tailored to PepsiCo’s business needs.",
-      position: "left-[78%] top-[20%]",
+        "PureInsights provides operational and strategic reports on call volumes, agent efficiency, abandonment, and Customer Satisfaction (CSAT). It integrates Success KPIs to evaluate Average Handle Time (AHT), compliance, and performance, giving QA teams actionable insights for continuous improvement.",
+      position: "left-[78%] top-[18%]",
       color: "border-indigo-400",
       stepText: nodeToStepMap["pureinsights"],
     },
@@ -183,6 +173,15 @@ const Inbound = () => {
       position: "left-[78%] top-[77%]",
       color: "border-teal-400",
       stepText: nodeToStepMap["post-call-survey"],
+    },
+    {
+      id: "pureinsights-kpis",
+      title: "Success KPIs",
+      icon: <ClipboardList className="w-4 h-4 text-pink-400" />,
+      description:
+        "Success KPIs, embedded under PureInsights, measure agent performance using Genesys call and survey data. Key metrics include Average Handle Time (AHT), compliance adherence, and Customer Satisfaction (CSAT). These evaluations support quality assurance and continuous improvement.",
+      position: "left-[78%] top-[28%]", // placed just under PureInsights
+      color: "border-pink-400",
     },
   ];
 
@@ -229,19 +228,7 @@ const Inbound = () => {
       label: "",
       showDots: true,
     },
-    {
-      from: "agent",
-      to: "successkpi",
-      dashed: true,
-      label: "",
-      showDots: true,
-    },
-    {
-      from: "successkpi",
-      to: "pureinsights",
-      animated: true,
-      label: "",
-    },
+
     {
       from: "genesys",
       to: "siebel",
@@ -276,10 +263,24 @@ const Inbound = () => {
       to: "siebel",
       animated: true,
       label: "",
+      showDots: true,
     },
     {
       from: "post-call-survey",
       to: "agent",
+      label: "",
+      showDots: true,
+    },
+    {
+      from: "dialogflow",
+      to: "queues",
+      label: "",
+      showDots: true,
+    },
+    {
+      from: "agent",
+      to: "pureinsights",
+      dashed: true,
       label: "",
       showDots: true,
     },
@@ -336,7 +337,7 @@ const Inbound = () => {
   const getPulseOffset = (index: number) => (pulsePhase + index * 10) % 60;
 
   return (
-    <div className="p-4 font-sans bg-slate-900 text-white">
+    <div className="mt-[-1rem] p-4 font-sans bg-slate-900 text-white">
       <div className="flex flex-col items-center mb-1">
         <h1 className="text-xl font-bold text-white">
           Inbound Call Flow Architecture
@@ -400,6 +401,7 @@ const Inbound = () => {
               <stop offset="100%" stopColor="#4FD1C5" stopOpacity="0" />
             </linearGradient>
           </defs>
+
           {connections.map((conn, index) => {
             const { path, labelPos } = calculatePath(
               conn.from,
@@ -524,7 +526,13 @@ const Inbound = () => {
             <div
               onMouseEnter={() => setHoveredNode(node.id)}
               onMouseLeave={() => setHoveredNode(null)}
-              className={`bg-slate-800/80 p-1 rounded-lg border ${node.color} w-24 text-center shadow-md hover:ring-1 hover:ring-cyan-400 transition-all`}
+              className={`bg-slate-800/80 p-1 rounded-lg border ${node.color} ${
+                node.id === "pureinsights"
+                  ? "w-32"
+                  : node.id === "pureinsights-kpis"
+                  ? "w-24"
+                  : "w-24"
+              } text-center shadow-md hover:ring-1 hover:ring-cyan-400 transition-all`}
             >
               {node.stepText && (
                 <div className="absolute top-[-20px] left-1/2 transform -translate-x-1/2 text-[11px] text-white whitespace-nowrap">

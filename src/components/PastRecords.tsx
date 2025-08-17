@@ -40,7 +40,7 @@ interface APIRecord {
 
 interface APIResponse {
   data?: APIRecord[];
-  errors?: any[];
+  errors?: unknown[];
 }
 
 // Frontend memory cache for API responses
@@ -108,11 +108,19 @@ export function PastRecords() {
       const contentType = res.headers.get("content-type") || "";
       console.log(`Content-Type: ${contentType}`);
 
+      const text = await res.text();
+      console.log("Raw response:", text);
+
+      let apiResponse: APIResponse;
+      try {
+        apiResponse = JSON.parse(text);
+      } catch {
+        throw new Error(`Invalid JSON received: ${text.substring(0, 200)}...`);
+      }
+
       if (!contentType.includes("application/json")) {
         throw new Error(`Expected JSON data, got: '${contentType}'`);
       }
-
-      const apiResponse: APIResponse = await res.json();
       console.log("Fetched raw data:", apiResponse);
 
       // Safeguard against undefined data and filter out 404 responses
@@ -126,7 +134,17 @@ export function PastRecords() {
           return record.statusCode === 200 && typeof record.body === "object";
         })
         .map((record) => {
-          const body = record.body as any;
+          const body = record.body as {
+            sales_record_count: number;
+            outbound_records: number;
+            inbound_records: number;
+            PP_records: number;
+            past_due_count: number;
+            CRT_record_count: number;
+            CRT_past_due_count: number;
+            COT_record_count: number;
+            COT_past_due_count: number;
+          };
           const transformed = {
             date: record.date,
             totalOutbound: body.outbound_records || 0,
@@ -146,9 +164,9 @@ export function PastRecords() {
       // Cache the results
       cache.set(cacheKey, { data: validRecords, timestamp: now });
       setRecords(validRecords);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      setError(err.message || "Error fetching past records");
+      setError((err as Error)?.message || "Error fetching past records");
       setRecords([]);
     } finally {
       setLoading(false);
@@ -519,7 +537,7 @@ export function PastRecords() {
               value:
                 filteredRecords.length > 0
                   ? Math.round(
-                      filtered.reduce(
+                      filteredRecords.reduce(
                         (sum, r) => sum + r.crtDialerPastDue,
                         0
                       ) / filteredRecords.length

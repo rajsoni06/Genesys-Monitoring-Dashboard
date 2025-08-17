@@ -24,13 +24,16 @@ interface AWSSchedulerItem {
   status: "ENABLED" | "DISABLED";
 }
 
-
-
 export function HomePage() {
-  const [schedulerStats, setSchedulerStats] = useState<SchedulerStats>({ total: 0, enabled: 0, disabled: 0, percentEnabled: 0 });
+  const [schedulerStats, setSchedulerStats] = useState<SchedulerStats>({
+    total: 0,
+    enabled: 0,
+    disabled: 0,
+    percentEnabled: 0,
+  });
   const [currentTime, setCurrentTime] = useState(new Date());
   const [schedulerData, setSchedulerData] = useState<AWSSchedulerItem[]>([]);
-  
+
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,7 +53,9 @@ export function HomePage() {
         setSchedulerData(schedulerData);
         setSchedulerStats(schedulerStats);
       } catch (err: unknown) {
-        setError((err as Error)?.message || "Error fetching AWS Scheduler data");
+        setError(
+          (err as Error)?.message || "Error fetching AWS Scheduler data"
+        );
         setSchedulerData([]);
         setSchedulerStats({
           total: 0,
