@@ -64,7 +64,7 @@ const Outbound = () => {
       icon: <Server className="w-6 h-6 text-purple-400" />,
       description:
         "Siebel CRM is the system of record for customer interactions. It generates dialer files (COT, Sales, CRT) with contact details and metadata, sending them to Tibco. After agent interactions, call outcomes (e.g., successful sale, callback) are immediately written back to Siebel, ensuring it remains the primary source of truth for customer updates and long-term tracking.",
-      position: "left-[10%] top-[42%]",
+      position: "left-[10%] top-[40%]",
       color: "border-purple-400",
       stepText: nodeToStepMap["siebel"],
     },
@@ -74,7 +74,7 @@ const Outbound = () => {
       icon: <Layers className="w-6 h-6 text-blue-400" />,
       description:
         "TIBCO acts as the middleware bus, orchestrating bidirectional data flow between Siebel, AWS, and Genesys. It transforms and routes dialer files from Siebel to AWS/Genesys. Crucially, for callbacks or campaign adjustments, Siebel updates flow back through TIBCO to AWS/Genesys, ensuring records are re-queued for subsequent attempts and maintaining synchronized data across systems.",
-      position: "left-[25%] top-[42%]",
+      position: "left-[25%] top-[40%]",
       color: "border-blue-400",
       stepText: nodeToStepMap["tibco"],
     },
@@ -84,7 +84,7 @@ const Outbound = () => {
       icon: <Cloud className="w-6 h-6 text-cyan-400" />,
       description:
         "AWS Transfer Family SFTP endpoint that receives files from Tibco. Secures data in S3 landing bucket and triggers the MDT (Metadata Transformation) process to align formats and timezones with Genesys requirements.",
-      position: "left-[40%] top-[42%]",
+      position: "left-[40%] top-[40%]",
       color: "border-cyan-400",
       stepText: nodeToStepMap["aws-sftp"],
     },
@@ -94,17 +94,24 @@ const Outbound = () => {
       icon: <Cpu className="w-6 h-6 text-yellow-400" />,
       description:
         "Core processing engine that scans files every 2 minutes. Validates, normalizes timezones to UTC, deduplicates, and transforms data to JSONL. Performs pre-dial checks and routes contacts to correct campaign based on PDSR/eligibility.",
-      position: "left-[57%] top-[42%]",
+      position: "left-[57%] top-[40%]",
       color: "border-yellow-400",
       stepText: nodeToStepMap["lambda-mdt"],
     },
     {
       id: "genesys-cloud",
       title: "Genesys Cloud",
-      icon: <PhoneOutgoing className="w-6 h-6 text-red-400" />,
+      icon: (
+        <PhoneOutgoing
+          className="w-6 h-6 text-red-400"
+          style={{
+            animation: "glowPulse 2.0s infinite ease-in-out", // slower pulse (5s full cycle)
+          }}
+        />
+      ),
       description:
         "Genesys Cloud manages all outbound dialing campaigns (Sales, CRT, COT, Max Dialer, Callbacks), enforcing attempt control and handling contact lists. It orchestrates call routing, retries, and dialer attempts. After interactions, campaign data is exported daily to AWS Backup, ensuring synchronization with Siebel CRM for comprehensive tracking and analysis.",
-      position: "left-[75%] top-[42%]",
+      position: "left-[75%] top-[40%]",
       color: "border-red-400",
       stepText: nodeToStepMap["genesys-cloud"],
     },
@@ -114,7 +121,7 @@ const Outbound = () => {
       icon: <PhoneForwarded className="w-6 h-6 text-red-300" />,
       description:
         "Direct flow bypassing AWS where Tibco inserts contacts directly into Genesys 15 minutes before dial-out. Used for time-sensitive calls without Siebel call time data.",
-      position: "left-[48%] top-[72%]",
+      position: "left-[49%] top-[70%]",
       color: "border-red-300",
       stepText: nodeToStepMap["genesys-direct"],
     },
@@ -124,7 +131,7 @@ const Outbound = () => {
       icon: <PhoneIncoming className="w-6 h-6 text-purple-300" />,
       description:
         "Siebel IWS is the agent’s interface with an embedded Genesys widget. It provides screen pops with customer data during calls and lets agents record outcomes directly in Siebel CRM.",
-      position: "left-[90%] top-[42%]",
+      position: "left-[90%] top-[40%]",
       color: "border-purple-300",
       stepText: nodeToStepMap["siebel-iws"],
     },
@@ -144,7 +151,7 @@ const Outbound = () => {
       icon: <AlertCircle className="w-6 h-6 text-orange-400" />,
       description:
         "Contacts not dialed during the day are marked as past due. These records are automatically carried forward to the next day's dialer file for retry in future campaigns.",
-      position: "left-[75%] top-[72%]",
+      position: "left-[75%] top-[70%]",
       color: "border-orange-400",
       stepText: nodeToStepMap["past-due-records"],
     },
@@ -154,7 +161,7 @@ const Outbound = () => {
       icon: <User className="w-6 h-6 text-indigo-400" />,
       description:
         "Agents use Siebel with integrated Genesys window for call handling. Features include: Answer calls, Transfer calls, View customer data via screen pops, and Access interaction history.",
-      position: "left-[90%] top-[62%]",
+      position: "left-[90%] top-[60%]",
       color: "border-indigo-400",
     },
     {
@@ -163,7 +170,7 @@ const Outbound = () => {
       icon: <Database className="w-6 h-6 text-green-400" />,
       description:
         "After each call, agent updates like sales outcomes, callbacks, or wrong numbers are recorded in Siebel CRM. Siebel remains the source of truth, while TIBCO can relay updates via AWS and Genesys for future campaigns and retries.",
-      position: "left-[90%] top-[89%]",
+      position: "left-[90%] top-[86%]",
       color: "border-green-400",
       stepText: nodeToStepMap["siebel-crm-sync"],
     },
@@ -341,6 +348,17 @@ const Outbound = () => {
   0%   { color: #94a3b8; }   /* slate-400 */
   50%  { color: #22d3ee; }   /* cyan-400 */
   100% { color: #94a3b8; }   /* slate-400 */
+}
+`}
+        </style>
+        <style>
+          {`
+@keyframes glowPulse {
+  0%   { transform: scale(0.9); opacity: 0.9; }
+  50%  { transform: scale(1.0); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.9; }
+  0%   { color: #f87171; text-shadow: 0 0 0px #f87171; }
+  100% { color: #f87171; text-shadow: 0 0 0px #f87171; }
 }
 `}
         </style>
@@ -530,9 +548,7 @@ const Outbound = () => {
               {hoveredNode === node.id && (
                 <div
                   className={`absolute z-50 w-48 p-2 text-xs bg-slate-950 border border-cyan-500/50 rounded-md shadow-lg ${
-                    ["aws-sftp", "lambda-mdt", "genesys-cloud"].includes(
-                      node.id
-                    )
+                    ["aws-sftp", "lambda-mdt"].includes(node.id)
                       ? "bottom-full mb-2 left-1/2 transform -translate-x-1/2"
                       : ["siebel", "tibco"].includes(node.id)
                       ? "top-full mt-2 left-1/2 transform -translate-x-1/2"
@@ -540,6 +556,8 @@ const Outbound = () => {
                       ? "left-full ml-2 top-1/2 transform -translate-y-1/2"
                       : node.id === "siebel-iws"
                       ? "right-[20%] pr-8 top-[5%] transform -translate-y-1/2"
+                      : node.id === "genesys-cloud"
+                      ? "right-full mr-2 top-1/2 transform -translate-y-1/2"
                       : "right-full mr-2 top-1/2 transform -translate-y-1/2"
                   }`}
                 >

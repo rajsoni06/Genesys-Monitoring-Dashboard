@@ -31,6 +31,7 @@ interface ConnectionType {
   dashed?: boolean;
   animated?: boolean;
   curve?: boolean;
+  curveType?: "downward" | "upward" | "auto";
   label?: string;
   showDots?: boolean;
 }
@@ -54,8 +55,8 @@ const Inbound = () => {
     customer: "1. Call Initiation",
     provider: "2. SIP Trunk Routing",
     genesys: "3. DID-Based Routing",
-    siebel: "4. CRM Backend",
-    dialogflow: "5. IVR & COF Auth",
+    siebel: "5. CRM Backend",
+    dialogflow: "4. IVR & COF Auth",
     queues: "6. Queue Assignment",
     agent: "7. Agent Interaction",
     "post-call-survey": "8. Post-Call Survey",
@@ -77,7 +78,14 @@ const Inbound = () => {
     {
       id: "provider",
       title: "Telecom / Broadband Provider",
-      icon: <Wifi className="w-6 h-6 text-blue-400" />,
+      icon: (
+        <Wifi
+          className="w-6 h-6 text-blue-400"
+          style={{
+            animation: "wifiPulse 2.6s infinite ease-in-out",
+          }}
+        />
+      ),
       description:
         "Carriers like Airtel, Vodafone, or AT&T receive the customer’s call and route it via secure SIP trunks to Genesys Cloud. SIP (Session Initiation Protocol) replaces traditional lines with VoIP, enabling advanced features and scalability. Trunks act as the backbone — if they are down, calls cannot be connected.",
       position: "left-[18%] top-[50%]",
@@ -89,8 +97,8 @@ const Inbound = () => {
       title: "Genesys Cloud",
       icon: <PhoneIncoming className="w-6 h-6 text-red-400" />,
       description:
-        "The main contact center platform. It receives the SIP call, identifies the DNIS (Dialed Number Identification Service) to determine which DID was called, and routes it to the appropriate Architect flow. ANI is used to match the caller to their contact record, improving routing accuracy and agent readiness.",
-      position: "left-[34%] top-[50%]",
+        "Genesys Cloud is the core contact center platform handling inbound voice. It receives SIP calls from the telecom provider, identifies ANI (caller ID) and DNIS (dialed number) to determine the correct DID, and routes the call into Architect IVR flows. Within these flows, Genesys can invoke Google Dialogflow CX for NLU, perform IVR logic, and decide whether to keep the call in self-service, validate customer details via Siebel, or transfer it to an ACD queue.",
+      position: "left-[35%] top-[50%]",
       color: "border-red-400",
       stepText: nodeToStepMap["genesys"],
     },
@@ -99,8 +107,8 @@ const Inbound = () => {
       title: "Google Dialogflow (GDF)",
       icon: <MessageSquare className="w-6 h-6 text-purple-400" />,
       description:
-        "Google Dialogflow CX is integrated within the Architect flow as a call bot. It manages language selection (via DTMF or voice) and performs Customer Onboarding Form (COF) authentication. Using basic Natural Language Understanding (NLU), it provides prompt-based responses for Account Acquisition. Based on COF validation, eligibility codes, and PDSR values, it either offers self-service options or routes the call to an agent.",
-      position: "left-[46%] top-[20%]",
+        "Google Dialogflow CX is embedded within Genesys Architect IVR flows as a virtual agent. It provides natural language understanding (NLU), menu navigation, and customer intent recognition. It can manage language selection (via DTMF or speech) and support Customer Onboarding Form (COF) authentication. When deeper CRM lookups are required, Genesys routes requests to Siebel, while Dialogflow focuses purely on conversation handling.",
+      position: "left-[50%] top-[20%]",
       color: "border-purple-400",
       stepText: nodeToStepMap["dialogflow"],
     },
@@ -109,7 +117,7 @@ const Inbound = () => {
       title: "Oracle Siebel CRM",
       icon: <Server className="w-6 h-6 text-orange-400" />,
       description:
-        "Acts as the CRM backend. COF validation requests from IVR are sent to Siebel via APIs. If valid, customer data is retrieved and displayed to the agent using the IWS (Interaction Workspace) connector deployed on the Siebel server. After the call, agents enter wrap-up codes, outcomes, tickets, and case notes, which are written back into Siebel CRM, keeping it the single source of truth.",
+        "Siebel CRM acts as the backend system of record for customer data, authentication, and case management. During IVR flows, Genesys sends API requests to Siebel for COF validation, account details, or eligibility checks. When a call is connected to an agent, Siebel IWS (Interaction Workspace) provides a screen-pop with customer data. After wrap-up, agents log notes, outcomes, and tickets directly into Siebel, ensuring all interaction history is stored in one centralized system.",
       position: "left-[58%] top-[50%]",
       color: "border-orange-400",
       stepText: nodeToStepMap["siebel"],
@@ -119,8 +127,8 @@ const Inbound = () => {
       title: "ACD Queues",
       icon: <List className="w-6 h-6 text-yellow-400" />,
       description:
-        "Genesys Cloud queues distribute calls to agents using Automatic Call Distribution (ACD). Routing decisions are based on eligibility codes, skills, and proficiency. Ensures the right agent gets the right call, improving SLA compliance and customer satisfaction.",
-      position: "left-[46%] top-[77%]",
+        "Automatic Call Distribution (ACD) queues in Genesys Cloud assign calls to the right agents based on skills, proficiency, priority, and business rules. If self-service through Dialogflow or IVR cannot resolve the issue, calls are placed into these queues. Once connected, the assigned agent has full context, including Siebel CRM data, previous interactions, and IVR journey details, ensuring efficient resolution and improved customer experience.",
+      position: "left-[50%] top-[77%]",
       color: "border-yellow-400",
       stepText: nodeToStepMap["queues"],
     },
@@ -129,12 +137,11 @@ const Inbound = () => {
       title: "Agent Desktop (Siebel + GCBA)",
       icon: <User className="w-6 h-6 text-cyan-400" />,
       description:
-        "Agents handle calls through the Siebel interface, integrated with Genesys Cloud. GCBA (Genesys Cloud Background Assist) automatically starts screen recording when a call connects, ensuring compliance and quality checks. Customer records are auto-populated from Siebel to reduce handling time. After each call, agent updates such as outcomes, tickets, and case notes are written back into Siebel CRM, ensuring real-time synchronization and making Siebel the single source of truth.",
-      position: "left-[78%] top-[50%]",
+        "Agents use the Siebel Interaction Workspace integrated with Genesys Cloud via GCBA. When a call connects, GCBA triggers screen recording and auto-populates customer data from Siebel. Agents can view account history and update wrap-up codes, notes, or cases, which are written back into Siebel in real time, ensuring bidirectional sync and making Siebel the system of record.",
+      position: "left-[78%] top-[77%]",
       color: "border-cyan-400",
       stepText: nodeToStepMap["agent"],
     },
-
     {
       id: "pureinsights",
       title: "PureInsights Reporting",
@@ -161,7 +168,7 @@ const Inbound = () => {
       icon: <Cloud className="w-6 h-6 text-red-300" />,
       description:
         "The bridge between the telecom provider and Genesys Cloud. If trunks are down, all inbound and outbound communication stops. SIP trunking provides digital connectivity, scalability, and cost efficiency over legacy systems.",
-      position: "left-[19%] top-[20%]",
+      position: "left-[21%] top-[20%]",
       color: "border-red-300",
     },
     {
@@ -170,7 +177,7 @@ const Inbound = () => {
       icon: <ClipboardList className="w-6 h-6 text-teal-400" />,
       description:
         "After each call, Genesys Cloud automatically collects customer feedback through post-call surveys. This data flows to Success KPIs where QA teams evaluate call recordings against performance metrics, ensuring quality and compliance. Final insights are reported in PureInsights for operational analysis and continuous improvement.",
-      position: "left-[78%] top-[77%]",
+      position: "left-[78%] top-[50%]",
       color: "border-teal-400",
       stepText: nodeToStepMap["post-call-survey"],
     },
@@ -201,11 +208,19 @@ const Inbound = () => {
       showDots: true,
     },
     {
-      from: "dialogflow",
-      to: "siebel",
+      from: "siebel",
+      to: "dialogflow",
       label: "",
       animated: true,
       curve: true,
+    },
+    {
+      from: "dialogflow",
+      to: "genesys",
+      label: "",
+      curve: true,
+      animated: true,
+      curveType: "upward",
     },
     {
       from: "genesys",
@@ -213,6 +228,7 @@ const Inbound = () => {
       label: "",
       curve: true,
       animated: true,
+      curveType: "downward",
     },
     {
       from: "genesys",
@@ -230,9 +246,9 @@ const Inbound = () => {
     },
 
     {
-      from: "genesys",
-      to: "siebel",
-      animated: false,
+      from: "siebel",
+      to: "genesys",
+      animated: true,
       label: "",
       showDots: true,
     },
@@ -267,13 +283,7 @@ const Inbound = () => {
     },
     {
       from: "post-call-survey",
-      to: "agent",
-      label: "",
-      showDots: true,
-    },
-    {
-      from: "dialogflow",
-      to: "queues",
+      to: "pureinsights",
       label: "",
       showDots: true,
     },
@@ -290,6 +300,7 @@ const Inbound = () => {
     fromId: string,
     toId: string,
     curve?: boolean,
+    curveType?: "downward" | "upward" | "auto",
     labelPos?: number
   ) => {
     const fromNode = nodes.find((n) => n.id === fromId);
@@ -310,15 +321,19 @@ const Inbound = () => {
 
     if (curve) {
       let controlY;
-      if (fromId === "dialogflow" && toId === "siebel") {
-        controlY = (from.y + to.y) / 2 - 15;
+      const midX = (from.x + to.x) / 2;
+
+      if (curveType === "downward") {
+        controlY = Math.max(from.y, to.y) + 2;
+      } else if (curveType === "upward") {
+        controlY = Math.min(from.y, to.y) - 4;
+      } else if (fromId === "dialogflow" && toId === "siebel") {
+        controlY = (from.y + to.y) / 2 - 15; // Keep existing custom logic
       } else {
         controlY = from.y < to.y ? from.y + 30 : from.y - 30;
       }
       return {
-        path: `M ${from.x} ${from.y} Q ${(from.x + to.x) / 2} ${controlY}, ${
-          to.x
-        } ${to.y}`,
+        path: `M ${from.x} ${from.y} Q ${midX} ${controlY}, ${to.x} ${to.y}`,
         labelPos: {
           x: (from.x + to.x) / 2,
           y: (from.y + to.y) / 2 + (from.y < to.y ? 5 : -5),
@@ -406,7 +421,8 @@ const Inbound = () => {
             const { path, labelPos } = calculatePath(
               conn.from,
               conn.to,
-              conn.curve
+              conn.curve,
+              conn.curveType
             );
             const isHovered =
               hoveredNode === conn.from || hoveredNode === conn.to;
@@ -546,14 +562,12 @@ const Inbound = () => {
               {hoveredNode === node.id && (
                 <div
                   className={`absolute z-50 w-48 p-2 text-xs bg-slate-950 border border-cyan-500/50 rounded-md shadow-lg ${
-                    [
-                      "customer",
-                      "provider",
-                      "siebel",
-                      "backup",
-                      "genesys",
-                    ].includes(node.id)
+                    ["customer", "provider", "backup", "genesys"].includes(
+                      node.id
+                    )
                       ? "top-full mt-2 left-1/2 transform -translate-x-1/2"
+                      : ["siebel"].includes(node.id)
+                      ? "bottom-full mb-2 left-1/2 transform -translate-x-1/2"
                       : ["queues"].includes(node.id)
                       ? "left-full ml-2 top-1/2 transform -translate-y-1/2"
                       : node.id === "agent"

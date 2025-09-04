@@ -38,6 +38,7 @@ interface ConnectionType {
   dashed?: boolean;
   animated?: boolean;
   curve?: boolean;
+  curveType?: "downward" | "upward" | "auto"; // Added for curve direction control
   label?: string;
   showDots?: boolean;
 }
@@ -63,7 +64,7 @@ const GDF = () => {
     tibco: "7. TIBCO Integration",
     siebel: "8. Siebel Storage",
     queue: "9. Agent Escalation",
-    observability: "10. Monitoring",
+    observability: "Continuous Monitoring",
   };
 
   const nodes: NodeType[] = [
@@ -92,7 +93,7 @@ const GDF = () => {
       title: "Genesys Architect",
       icon: <Workflow className="w-6 h-6 text-cyan-400" />,
       description:
-        "Genesys Architect orchestrates the conversation by mapping each incoming message to the appropriate flow. It manages both the Pre-Login and Post-Login chatbot flows, controls routing to Dialogflow CX, and handles timeouts, fallbacks, and escalations to live agents. Architect ensures that conversations follow consistent logic and business rules before handing them downstream.",
+        "Genesys Architect controls the chat flow, routing users to Pre-Login or Post-Login paths. It invokes Dialogflow CX for natural language understanding, manages timeouts and fallbacks, and escalates to live agents when needed. For CRM lookups or updates, Architect routes requests via TIBCO to Siebel, ensuring real-time synchronization without direct coupling.",
       position: "left-[38%] top-[50%]",
       color: "border-cyan-400",
       stepText: nodeToStepMap["architect"],
@@ -102,8 +103,8 @@ const GDF = () => {
       title: "Google Dialogflow CX",
       icon: <Bot className="w-6 h-6 text-green-400" />,
       description:
-        "Dialogflow CX powers the natural language understanding behind the chatbot. It interprets user inputs, drives Pre-Login and Post-Login flows, and presents menus such as registration, account information, or order and delivery. Each environment—Dev, FIT, and Prod—runs its own Dialogflow agent with dedicated configurations, allowing PepsiCo to test, refine, and scale the chatbot logic.",
-      position: "left-[54%] top-[50%]",
+        "Dialogflow CX powers natural language understanding, guiding Pre-Login and Post-Login flows with options like registration, account details, or order tracking. For production, the agents are Genesys_Prelogin_Chat and Genesys_PostLogin_Chat. When customer intents require CRM data, Architect routes the request via TIBCO → Siebel, returning responses back. Dialogflow focuses only on conversation flow while Genesys and TIBCO handle data sync with Siebel.",
+      position: "left-[56%] top-[50%]",
       color: "border-green-400",
       stepText: nodeToStepMap["dialogflow"],
     },
@@ -113,7 +114,7 @@ const GDF = () => {
       icon: <Lock className="w-5 h-5 text-yellow-400" />,
       description:
         "The Pre-Login chatbot flow supports unauthenticated users. It greets them with options such as self-registration and issue reporting, and it gracefully manages inactivity with a one-minute timeout popup. If a customer struggles to provide valid inputs, the flow eventually escalates the conversation to a live agent for assistance.",
-      position: "left-[54%] top-[25%]",
+      position: "left-[56%] top-[27%]",
       color: "border-yellow-400",
       stepText: nodeToStepMap["prelogin"],
     },
@@ -123,7 +124,7 @@ const GDF = () => {
       icon: <Unlock className="w-5 h-5 text-orange-400" />,
       description:
         "Once authenticated, customers enter the Post-Login chatbot flow. Here they can check order and delivery details, access account information, or raise unlisted issues. To protect the experience, the system enforces rules such as escalation to a live agent after two invalid inputs, ensuring no customer is left stuck in a loop.",
-      position: "left-[54%] top-[75%]",
+      position: "left-[56%] top-[73%]",
       color: "border-orange-400",
       stepText: nodeToStepMap["postlogin"],
     },
@@ -132,8 +133,8 @@ const GDF = () => {
       title: "TIBCO Middleware",
       icon: <Layers className="w-6 h-6 text-indigo-400" />,
       description:
-        "TIBCO is the middleware between Genesys and Siebel. It standardizes APIs, handles authentication, and orchestrates data flow in both directions. When the chatbot or agent requests CRM info, data moves Genesys → TIBCO → Siebel. When Siebel responds, the return flow Siebel → TIBCO → Genesys ensures real-time updates while keeping the bot loosely coupled from Siebel.",
-      position: "left-[74%] top-[50%]",
+        "TIBCO acts as the integration bus between Genesys and Siebel. It standardizes APIs, manages authentication, and ensures bidirectional data flow. Requests such as customer or order info travel Genesys → TIBCO → Siebel, while responses and agent updates flow Siebel → TIBCO → Genesys. This keeps Genesys loosely coupled from Siebel while maintaining real-time sync.",
+      position: "left-[72%] top-[50%]",
       color: "border-indigo-400",
       stepText: nodeToStepMap["tibco"],
     },
@@ -142,27 +143,34 @@ const GDF = () => {
       title: "Siebel CRM",
       icon: <Database className="w-6 h-6 text-red-400" />,
       description:
-        "Siebel CRM is the system of record for customer data, tickets, and case management. It works bidirectionally with Genesys through TIBCO—receiving requests for customer or order info, and sending responses back. This keeps transcripts, escalations, and historical context available in real time for agents.",
+        "Siebel CRM serves as the single source of truth for customer data, tickets, case notes, and interaction outcomes. Through TIBCO, it works bidirectionally with Genesys—receiving requests for customer or order information and sending responses back. Agent updates, escalations, and transcripts are written into Siebel in real time, ensuring complete historical context and consistent customer records.",
       position: "left-[88%] top-[50%]",
       color: "border-red-400",
       stepText: nodeToStepMap["siebel"],
     },
     {
       id: "queue",
-      title: "Agent Queue",
+      title: "Live Agent",
       icon: <List className="w-6 h-6 text-yellow-400" />,
       description:
-        "When automated resolution is not possible, Architect routes the chat to the dedicated agent queue. The PP_Chat_Q ensures that messages are transferred to the next available skilled agent, creating a smooth handoff from bot to human and preserving all conversation history for the agent to review.",
-      position: "left-[74%] top-[75%]",
+        "If self-service in Dialogflow or Architect fails, Genesys Architect escalates the chat to the PP_Chat_Q. From there, Genesys Cloud routes it to the next available skilled agent. The full chat history, including bot interactions and customer details, is preserved so the agent has complete context for resolution.",
+      position: "left-[38%] top-[80%]",
       color: "border-yellow-400",
       stepText: nodeToStepMap["queue"],
     },
     {
       id: "observability",
       title: "Monitoring & Analytics",
-      icon: <Activity className="w-6 h-6 text-teal-400" />,
+      icon: (
+        <Activity
+          className="w-6 h-6 text-teal-400"
+          style={{
+            animation: "monitorWave 1.2s infinite ease-in-out",
+          }}
+        />
+      ),
       description:
-        "Observability is embedded throughout the chatbot ecosystem. Dialogflow logs conversation history and errors, Genesys tracks analytics from Architect and Messenger, and cloud logging services integrate these data points. This end-to-end monitoring ensures that teams can measure performance, troubleshoot issues, and refine both bot and human-assisted journeys.",
+        "Monitoring runs across all stages of the chatbot ecosystem. Dialogflow captures intents and errors, Genesys provides analytics from Messenger and Architect, and cloud logging consolidates data. This observability layer ensures performance tracking, faster troubleshooting, and continuous improvement of both bot and live-agent journeys.",
       position: "left-[38%] top-[20%]",
       color: "border-teal-400",
       stepText: nodeToStepMap["observability"],
@@ -190,6 +198,12 @@ const GDF = () => {
     },
     {
       from: "dialogflow",
+      to: "architect",
+      animated: true,
+      showDots: true,
+    },
+    {
+      from: "dialogflow",
       to: "prelogin",
       animated: false,
       dashed: true,
@@ -205,6 +219,8 @@ const GDF = () => {
       to: "tibco",
       animated: true,
       curve: true,
+      showDots: true,
+      curveType: "upward",
     },
     {
       from: "tibco",
@@ -219,17 +235,26 @@ const GDF = () => {
       showDots: true,
     },
     {
-      from: "dialogflow",
+      from: "architect",
       to: "queue",
       animated: true,
       curve: true,
       label: "",
+      showDots: true,
     },
     {
       from: "architect",
       to: "observability",
       animated: false,
       dashed: true,
+    },
+    {
+      from: "siebel",
+      to: "architect",
+      animated: true,
+      curve: true,
+      curveType: "downward",
+      showDots: true,
     },
   ];
 
@@ -290,6 +315,7 @@ const GDF = () => {
     fromId: string,
     toId: string,
     curve?: boolean,
+    curveType?: "downward" | "upward" | "auto",
     labelPos?: number
   ) => {
     const fromNode = nodes.find((n) => n.id === fromId);
@@ -309,13 +335,22 @@ const GDF = () => {
     const to = parse(toNode.position);
 
     if (curve) {
-      const controlY = from.y < to.y ? from.y + 15 : from.y - 15;
+      let controlY;
+      const midX = (from.x + to.x) / 2;
+
+      if (curveType === "downward") {
+        controlY = Math.max(from.y, to.y) + 77; // Adjust 35 for desired curve depth
+      } else if (curveType === "upward") {
+        controlY = Math.min(from.y, to.y) - 8; // Adjust 10 for desired curve height
+      } else {
+        // Default auto curve logic
+        controlY = from.y < to.y ? from.y + 15 : from.y - 15;
+      }
+
       return {
-        path: `M ${from.x} ${from.y} Q ${(from.x + to.x) / 2} ${controlY}, ${
-          to.x
-        } ${to.y}`,
+        path: `M ${from.x} ${from.y} Q ${midX} ${controlY}, ${to.x} ${to.y}`,
         labelPos: {
-          x: (from.x + to.x) / 2,
+          x: midX,
           y: (from.y + to.y) / 2 + (from.y < to.y ? 5 : -5),
         },
       };
@@ -359,6 +394,16 @@ const GDF = () => {
 }
 `}
         </style>
+
+        <style>
+          {`
+@keyframes monitorWave {
+  0%   { transform: scale(0.9); opacity: 0.9; }
+  50%  { transform: scale(1.0); opacity: 1; }
+  100% { transform: scale(0.9); opacity: 0.9; }
+}
+`}
+        </style>
       </div>
       <div className="relative h-[500px] bg-slate-800/50 rounded-lg p-2">
         <svg
@@ -399,7 +444,8 @@ const GDF = () => {
             const { path, labelPos } = calculatePath(
               conn.from,
               conn.to,
-              conn.curve
+              conn.curve,
+              conn.curveType
             );
             const isHovered =
               hoveredNode === conn.from || hoveredNode === conn.to;
@@ -422,14 +468,26 @@ const GDF = () => {
                       stroke="transparent"
                       strokeWidth="10"
                     />
-                    <ellipse rx="0.3" ry="0.5" fill="#4FD1C5">
+                    <ellipse
+                      rx="0.3"
+                      ry="0.5"
+                      fill="#4FD1C5"
+                      stroke="#4FD1C5"
+                      strokeWidth="0.1"
+                    >
                       <animateMotion
                         dur="8s"
                         repeatCount="indefinite"
                         path={path}
                       />
                     </ellipse>
-                    <ellipse rx="0.3" ry="0.5" fill="#4FD1C5">
+                    <ellipse
+                      rx="0.3"
+                      ry="0.5"
+                      fill="#4FD1C5"
+                      stroke="#4FD1C5"
+                      strokeWidth="0.1"
+                    >
                       <animateMotion
                         dur="8s"
                         repeatCount="indefinite"
@@ -437,7 +495,13 @@ const GDF = () => {
                         begin="2s"
                       />
                     </ellipse>
-                    <ellipse rx="0.3" ry="0.5" fill="#4FD1C5">
+                    <ellipse
+                      rx="0.3"
+                      ry="0.5"
+                      fill="#4FD1C5"
+                      stroke="#4FD1C5"
+                      strokeWidth="0.1"
+                    >
                       <animateMotion
                         dur="8s"
                         repeatCount="indefinite"
@@ -447,17 +511,7 @@ const GDF = () => {
                     </ellipse>
                   </>
                 )}
-                {conn.animated && (
-                  <path
-                    d={path}
-                    fill="none"
-                    stroke="url(#pulseGradient)"
-                    strokeWidth="0.6"
-                    strokeDasharray="10, 10"
-                    strokeDashoffset={getPulseOffset(index)}
-                    strokeLinecap="round"
-                  />
-                )}
+
                 {conn.label && (
                   <text
                     x={labelPos?.x || 0}
@@ -477,7 +531,9 @@ const GDF = () => {
         {nodes.map((node) => (
           <div
             key={node.id}
-            className={`absolute transform -translate-x-1/2 -translate-y-1/2 ${node.position}`}
+            className={`absolute transform -translate-x-1/2 -translate-y-1/2 ${
+              node.position
+            } ${hoveredNode === node.id ? "z-50" : "z-10"}`}
           >
             {node.stepText && (
               <div className="absolute top-[-20px] left-1/2 transform -translate-x-1/2 text-[11px] text-white whitespace-nowrap">
@@ -499,6 +555,9 @@ const GDF = () => {
                     // Nodes that should appear above (portal, messenger)
                     ["portal", "messenger"].includes(node.id)
                       ? "bottom-full mb-2 left-1/2 transform -translate-x-1/2"
+                      : // Dialogflow pop-up adjusted down and left
+                      ["dialogflow"].includes(node.id)
+                      ? "bottom-[95%] left-[42%] transform -translate-x-1/2"
                       : // Nodes that should appear to the right (prelogin) - shifted up
                       ["prelogin"].includes(node.id)
                       ? "left-full ml-2 top-[25%] transform -translate-y-1/2"

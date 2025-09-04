@@ -57,7 +57,9 @@ function CustomDropdown({ title, children }: CustomDropdownProps) {
 }
 
 interface NavbarProps {
-  setIsSidebarCollapsed: (value: boolean | ((prev: boolean) => boolean)) => void;
+  setIsSidebarCollapsed: (
+    value: boolean | ((prev: boolean) => boolean)
+  ) => void;
 }
 
 export function Navbar({ setIsSidebarCollapsed }: NavbarProps) {
@@ -111,12 +113,16 @@ export function Navbar({ setIsSidebarCollapsed }: NavbarProps) {
       name: "Genesys Resource Center",
       url: "https://help.mypurecloud.com/",
     },
+    {
+      name: "PureInsights Status",
+      url: "https://status.mypureinsights.com/?subscription_confirmed=true#",
+    },
   ];
 
   const pocData = [
     { name: "Naveen Kumar, Pantamvari", month: "July" },
     { name: "Belthangadi, Bhavya", month: "August" },
-    { name: "Sreeni", month: "September" },
+    { name: "K, Sreenivasulu", month: "September" },
     { name: "Santhosh, Agnello", month: "October" },
     { name: "KK", month: "November" },
     { name: "P, Saranya", month: "December" },

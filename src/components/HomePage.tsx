@@ -205,19 +205,21 @@ export function HomePage() {
               <div className="clock-card flex items-center gap-2 px-3 py-2 mb-1">
                 <Clock className="w-5 h-5 text-yellow-300" />
                 <span className="font-mono text-sm">
-                  IST: {formatTime12Hour(currentTime, 0)}
+                  🇮🇳 IST: {formatTime12Hour(currentTime, 0)}
                 </span>
               </div>
+
               <div className="clock-card flex items-center gap-2 px-3 py-2 mb-1">
                 <Clock className="w-5 h-5 text-green-300" />
                 <span className="font-mono text-sm">
-                  PHST: {formatTime12Hour(currentTime, 2.5)}
+                  🇵🇭 PHST: {formatTime12Hour(currentTime, 2.5)}
                 </span>
               </div>
+
               <div className="clock-card flex items-center gap-2 px-3 py-2 mb-1">
                 <Clock className="w-5 h-5 text-cyan-300" />
                 <span className="font-mono text-sm">
-                  EST: {formatTime12Hour(currentTime, -9.5)}
+                  🇺🇸 EST: {formatTime12Hour(currentTime, -9.5)}
                 </span>
               </div>
             </div>
