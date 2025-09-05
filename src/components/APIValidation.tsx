@@ -10,6 +10,10 @@ import {
 } from "lucide-react";
 
 export function APIValidation() {
+  const [cofInput, setCofInput] = useState<string>("");
+  const [salesApiResponse, setSalesApiResponse] = useState<any>(null);
+  const [salesApiLoading, setSalesApiLoading] = useState<boolean>(false);
+  const [salesApiError, setSalesApiError] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [currentIndex, setCurrentIndex] = useState(-1);
   const [token, setToken] = useState<string | null>(null);
@@ -19,11 +23,16 @@ export function APIValidation() {
   const [error, setError] = useState<string | null>(null);
   const [showTokenCopyToast, setShowTokenCopyToast] = useState<boolean>(false);
   const [showLinkCopyToast, setShowLinkCopyToast] = useState<boolean>(false);
+  const [showCofCopyToast, setShowCofCopyToast] = useState<boolean>(false);
   const [toastPosition, setToastPosition] = useState<{
     top: number;
     left: number;
   } | null>(null);
   const [showJson, setShowJson] = useState<boolean>(false);
+  const [agentDetails, setAgentDetails] = useState<any>(null);
+  const [agentDetailsLoading, setAgentDetailsLoading] = useState<boolean>(false);
+  const [agentDetailsError, setAgentDetailsError] = useState<string | null>(null);
+  const testCof = "9269653";
 
   const apiEndpoints = [
     {
@@ -33,8 +42,9 @@ export function APIValidation() {
     },
     {
       name: "Sales_GetCustomerbyCOF",
-      url: "https://apps.usw2.pure.cloud/directory/#/admin/integrations/actions/custom_-_59f20d6d-1744-4dc4-8094-fdb093f2a234/summary",
+      url: "https://hi3326mflk.execute-api.us-east-1.amazonaws.com/pre-prod", // Use proxy endpoint
       status: "success",
+      requiresInput: true,
     },
   ];
 
@@ -69,6 +79,35 @@ export function APIValidation() {
   const handleAPITest = (endpoint: (typeof apiEndpoints)[0]) => {
     if (endpoint.name === "Get_Token") {
       fetchToken();
+    } else if (endpoint.name === "Sales_GetCustomerbyCOF") {
+      if (!cofInput.trim()) return;
+      setSalesApiLoading(true);
+      setSalesApiError(null);
+      setSalesApiResponse(null);
+      // Use POST to proxy with JSON body
+      fetch(endpoint.url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cof: cofInput }),
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            let errMsg = "API Error";
+            try {
+              const errJson = await res.json();
+              errMsg = errJson.error || errJson.message || JSON.stringify(errJson);
+            } catch {
+              // ignore
+            }
+            throw new Error(`${errMsg} (HTTP ${res.status})`);
+          }
+          return res.json();
+        })
+        .then((data) => setSalesApiResponse(data))
+        .catch((err) => setSalesApiError(err.message))
+        .finally(() => setSalesApiLoading(false));
+      setHistory((prev) => [...prev, `Sales API test for COF: ${cofInput}`]);
+      setCurrentIndex((prev) => prev + 1);
     } else {
       setHistory((prev) => [...prev, endpoint.url]);
       setCurrentIndex((prev) => prev + 1);
@@ -153,25 +192,76 @@ export function APIValidation() {
       .catch((err) => console.error("Copy failed:", err));
   };
 
+  const handleCopyCof = (e: React.MouseEvent) => {
+    navigator.clipboard
+      .writeText(testCof)
+      .then(() => {
+        setShowCofCopyToast(true);
+        setToastPosition({
+          top:
+            (e.target as HTMLElement).getBoundingClientRect().top +
+            window.scrollY -
+            40,
+          left:
+            (e.target as HTMLElement).getBoundingClientRect().left +
+            window.scrollX +
+            20,
+        });
+        setTimeout(() => {
+          setShowCofCopyToast(false);
+          setToastPosition(null);
+        }, 2000);
+      })
+      .catch((err) => console.error("Copy failed:", err));
+  };
+
   useEffect(() => {
-    // For debugging
-    // console.log("Token updated in state:", token);
-  }, [token]);
+    if (!cofInput.trim()) {
+      setAgentDetails(null);
+      setAgentDetailsError(null);
+      return;
+    }
+    setAgentDetailsLoading(true);
+    setAgentDetailsError(null);
+    fetch("/proxy/agent-details-by-cof", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cof: cofInput }),
+    })
+      .then(async (res) => {
+        if (!res.ok) {
+          let errMsg = "Agent details not found";
+          try {
+            const errJson = await res.json();
+            errMsg = errJson.error || errJson.message || JSON.stringify(errJson);
+          } catch {
+            // ignore
+          }
+          throw new Error(`${errMsg} (HTTP ${res.status})`);
+        }
+        return res.json();
+      })
+      .then((data) => setAgentDetails(data))
+      .catch((err) => setAgentDetailsError(err.message))
+      .finally(() => setAgentDetailsLoading(false));
+  }, [cofInput]);
 
   return (
     <div
-      className="min-h-screen p-4 font-sans"
+      className="p-6 h-full bg-gray-700 overflow-auto"
       style={{
         background:
-          "linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #2563eb 100%)",
+          "linear-gradient(135deg, #0f172a 0%, #1e293b 100%, #2563eb 100%)",
+        maxHeight: "100vh",
+        overflowY: "auto",
       }}
     >
       <div className="max-w-5xl mx-auto space-y-6">
         {/* Header */}
         <div className="glassmorphism p-5 rounded-xl shadow-xl border border-cyan-500/20 flex items-center gap-4 mb-2">
-          <Shield className="w-10 h-10 text-cyan-400 animate-pulse-slow" />
+          <Shield className="w-7 h-7 text-cyan-400 animate-pulse-slow" />
           <div>
-            <h1 className="text-2xl font-bold font-sans tracking-tight">
+            <h1 className="text-1xl font-bold font-sans tracking-tight">
               API Validation Center
             </h1>
             <p className="text-gray-300 text-base">
@@ -207,6 +297,60 @@ export function APIValidation() {
                   {endpoint.name === "Sales_GetCustomerbyCOF" &&
                     "Retrieve customer information for sales operations"}
                 </p>
+                {/* COF Input for Sales API */}
+                {endpoint.requiresInput && (
+                  <div className="space-y-2">
+                    <label className="text-sm text-cyan-400 font-semibold">
+                      Enter COF:
+                    </label>
+                    <input
+                      type="text"
+                      value={cofInput}
+                      onChange={(e) => setCofInput(e.target.value)}
+                      placeholder="e.g., 123456"
+                      className="w-full px-3 py-2 bg-gray-800/50 border border-cyan-500/30 rounded-lg text-white placeholder-gray-400 focus:border-cyan-400 focus:outline-none transition-colors"
+                    />
+                    {/* Hardcoded test COF with copy button */}
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs text-cyan-300 font-mono">
+                        Test COF: <span className="font-bold">{testCof}</span>
+                      </span>
+                      <button
+                        onClick={handleCopyCof}
+                        className="flex items-center gap-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-all duration-300 shadow-md hover:shadow-lg text-xs"
+                        title="Copy Test COF"
+                      >
+                        <Copy className="w-4 h-4" />
+                        Copy
+                      </button>
+                    </div>
+                    {/* Agent details from Excel */}
+                    <div className="mt-2 p-3 bg-gray-900 rounded-xl border border-cyan-500/20 overflow-auto max-h-32">
+                      {agentDetailsLoading ? (
+                        <span className="text-xs text-cyan-400 font-mono">Loading agent details...</span>
+                      ) : agentDetailsError ? (
+                        <span className="text-xs text-red-400 font-mono">{agentDetailsError}</span>
+                      ) : agentDetails ? (
+                        <div className="text-xs text-green-300 font-mono space-y-1">
+                          <div>
+                            <span className="font-bold">COF:</span> {agentDetails.cof}
+                          </div>
+                          <div>
+                            <span className="font-bold">Time Zone:</span> {agentDetails.timeZone}
+                          </div>
+                          <div>
+                            <span className="font-bold">Language:</span> {agentDetails.language}
+                          </div>
+                          <div>
+                            <span className="font-bold">Time:</span> {agentDetails.time}
+                          </div>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-500 font-mono">Enter COF to see agent details</span>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleAPITest(endpoint)}
@@ -218,28 +362,30 @@ export function APIValidation() {
                         ? "Loading..."
                         : "Test API"}
                     </span>
-                    <ExternalLink className="w-4 h-4" />
                   </button>
-                  {endpoint.name === "Get_Token" && (
-                    <button
-                      onClick={handleCopyToken}
-                      className="flex items-center gap-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-all duration-300 shadow-md hover:shadow-lg min-w-[40px] max-w-[80px]"
-                      title="Copy Token"
-                      disabled={!token}
-                    >
-                      <Copy className="w-4 h-4" />
-                    </button>
-                  )}
-                  {endpoint.name === "Sales_GetCustomerbyCOF" && (
-                    <button
-                      onClick={(e) => handleCopyLink(endpoint.url, e)}
-                      className="flex items-center gap-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-all duration-300 shadow-md hover:shadow-lg min-w-[40px] max-w-[80px]"
-                      title="Copy Link"
-                    >
-                      <Copy className="w-4 h-4" />
-                    </button>
-                  )}
                 </div>
+                {/* Show Sales API response */}
+                {endpoint.name === "Sales_GetCustomerbyCOF" && (
+                  <div className="mt-2 p-3 bg-gray-800 rounded-xl border border-cyan-500/20 overflow-auto max-h-40 flex flex-col gap-2">
+                    {salesApiError ? (
+                      <span className="text-xs text-red-400 font-mono">
+                        {salesApiError}
+                      </span>
+                    ) : salesApiLoading ? (
+                      <span className="text-xs text-cyan-400 font-mono">
+                        Loading...
+                      </span>
+                    ) : salesApiResponse ? (
+                      <pre className="text-xs text-green-300 font-mono whitespace-pre-wrap break-words">
+                        {JSON.stringify(salesApiResponse, null, 2)}
+                      </pre>
+                    ) : (
+                      <span className="text-xs text-gray-500 font-mono">
+                        No response yet
+                      </span>
+                    )}
+                  </div>
+                )}
                 {endpoint.name === "Get_Token" && (
                   <div className="mt-2 p-3 bg-gray-800 rounded-xl border border-cyan-500/20 overflow-auto max-h-40 flex flex-col gap-2">
                     {error ? (
@@ -352,6 +498,17 @@ export function APIValidation() {
             }}
           >
             Link copied!
+          </div>
+        )}
+        {showCofCopyToast && toastPosition && (
+          <div
+            className="fixed bg-green-600 text-white px-3 py-1 rounded-md shadow-lg animate-fade-in-out z-50"
+            style={{
+              top: `${toastPosition.top}px`,
+              left: `${toastPosition.left}px`,
+            }}
+          >
+            COF copied!
           </div>
         )}
       </div>

@@ -191,10 +191,10 @@ export function Navbar({ setIsSidebarCollapsed }: NavbarProps) {
               />
             </div>
             <span className="text-xl font-bold text-white drop-shadow-neon">
-              HCD
+              GMD
             </span>
             <span className="text-sm text-gray-100 hidden sm:block font-semibold">
-              Health Check Dashboard
+              Genesys Monitoring Dashboard
             </span>
           </div>
         </a>

@@ -229,6 +229,45 @@ app.get("/proxy/past-records-range", async (req, res) => {
   }
 });
 
+// PREDIAL CHECK: Sales_GetCustomerbyCOF
+app.post("/proxy/sales-get-customer-by-cof", async (req, res) => {
+  try {
+    const { cof } = req.body;
+    if (!cof) {
+      return res.status(400).json({ error: 'Missing "cof" in body.' });
+    }
+    const response = await fetch(
+      "https://hi3326mflk.execute-api.us-east-1.amazonaws.com/pre-prod",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cof }),
+      }
+    );
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      // If response is not JSON, return raw text
+      return res.status(500).json({
+        error: "Predail check API did not return valid JSON",
+        raw: text,
+      });
+    }
+    if (!response.ok) {
+      return res.status(response.status).json({
+        error: `API request failed: ${response.status}`,
+        details: data,
+      });
+    }
+    res.json(data);
+  } catch (err) {
+    console.error("Predail check proxy error:", err);
+    res.status(500).json({ error: "Failed to fetch customer by COF" });
+  }
+});
+
 app.listen(PORT, () =>
   console.log(`Proxy server running on port ${PORT}`)
 );

@@ -442,12 +442,12 @@ export function PastRecords() {
           }
         `}
       </style>
-      <div className="max-w-7xl mx-auto space-y-8">
+      <div className="max-w-7xl mx-auto space-y-4">
         {/* Header */}
         <div className="glassmorphism p-6 rounded-xl shadow-lg">
-          <div className="flex items-center gap-4 mb-6">
-            <Database className="w-10 h-10 text-cyan-400" />
-            <h1 className="text-3xl font-bold text-white font-mono tracking-wide">
+          <div className="flex items-center gap-4 mb-3">
+            <Database className="w-7 h-7 text-cyan-400" />
+            <h1 className="text-2xl font-bold text-white font-mono tracking-wide">
               Historical Dialer Records
             </h1>
           </div>
@@ -562,7 +562,7 @@ export function PastRecords() {
                 setSelectedDate("");
                 setSearchTerm("");
               }}
-              className="px-6 py-2 bg-cyan-600/80 hover:bg-cyan-500/80 rounded-lg text-white font-medium transition-all duration-300 shadow-md hover:shadow-lg"
+              className="px-3 py-2 bg-cyan-600/80 hover:bg-cyan-500/80 rounded-lg text-white font-sm transition-all duration-300 shadow-md hover:shadow-lg"
             >
               Clear Filters
             </button>
