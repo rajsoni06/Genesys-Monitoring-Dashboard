@@ -7,9 +7,10 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  RefreshCw,
 } from "lucide-react";
 
-interface DialerRecord {
+export interface DialerRecord {
   date: string;
   totalOutbound: number;
   reminderOutbound: number;
@@ -19,28 +20,116 @@ interface DialerRecord {
   crtDialerPastDue: number;
 }
 
-// Add interface for the actual API response
-interface APIRecord {
-  statusCode: number;
-  body:
-    | {
-        sales_record_count: number;
-        outbound_records: number;
-        inbound_records: number;
-        PP_records: number;
-        past_due_count: number;
-        CRT_record_count: number;
-        CRT_past_due_count: number;
-        COT_record_count: number;
-        COT_past_due_count: number;
-      }
-    | string;
-  date: string;
+// Update: fetch both today's and previous day's records
+export async function fetchTodaysDialerRecords(): Promise<{
+  today: DialerRecord | null;
+  previous: DialerRecord | null;
+}> {
+  const today = new Date();
+  const prev = new Date(today);
+  prev.setDate(today.getDate() - 1);
+
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  const todayIso = `${year}-${month}-${day}`;
+
+  const prevYear = prev.getFullYear();
+  const prevMonth = String(prev.getMonth() + 1).padStart(2, "0");
+  const prevDay = String(prev.getDate()).padStart(2, "0");
+  const prevIso = `${prevYear}-${prevMonth}-${prevDay}`;
+
+  try {
+    // Fetch both days in one call (if supported)
+    const url = `/proxy/past-records-range?startDate=${prevIso}&endDate=${todayIso}`;
+    const res = await fetch(url);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error(`HTTP Error fetching records: ${res.status}`, errorText);
+      return { today: null, previous: null };
+    }
+
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      console.error(`Expected JSON data, got: '${contentType}' for records`);
+      return { today: null, previous: null };
+    }
+
+    const text = await res.text();
+    let apiResponse: APIRecord[];
+    try {
+      apiResponse = JSON.parse(text);
+    } catch (e) {
+      console.error(
+        `Invalid JSON received for records: ${text.substring(0, 200)}...`,
+        e
+      );
+      return { today: null, previous: null };
+    }
+
+    let recordsArray: APIRecord[] = [];
+    if (Array.isArray(apiResponse)) {
+      recordsArray = apiResponse;
+    } else if (apiResponse && Array.isArray((apiResponse as any).data)) {
+      recordsArray = (apiResponse as any).data;
+    }
+
+    const validRecords = recordsArray
+      .filter(
+        (record) => record.statusCode === 200 && typeof record.body === "object"
+      )
+      .map((record) => {
+        const body = record.body as {
+          sales_record_count: number;
+          outbound_records: number;
+          inbound_records: number;
+          PP_records: number;
+          past_due_count: number;
+          CRT_record_count: number;
+          CRT_past_due_count: number;
+          COT_record_count: number;
+          COT_past_due_count: number;
+        };
+        return {
+          date: record.date,
+          totalOutbound: body.outbound_records || 0,
+          reminderOutbound: body.outbound_records || 0,
+          reminderInbound: body.inbound_records || 0,
+          reminderPPWeb: body.PP_records || 0,
+          salesPastDue: body.past_due_count || 0,
+          crtDialerPastDue: body.CRT_past_due_count || 0,
+        } as DialerRecord;
+      });
+
+    // Find today's and previous day's records by date
+    const todayRecord =
+      validRecords.find((r) => r.date.startsWith(todayIso)) || null;
+    const prevRecord =
+      validRecords.find((r) => r.date.startsWith(prevIso)) || null;
+
+    return { today: todayRecord, previous: prevRecord };
+  } catch (err) {
+    console.error("Error in fetchTodaysDialerRecords:", err);
+    return { today: null, previous: null };
+  }
 }
 
-interface APIResponse {
-  data?: APIRecord[];
-  errors?: unknown[];
+// Add interface for the actual API response
+export interface APIRecord {
+  statusCode: number;
+  body: {
+    sales_record_count: number;
+    outbound_records: number;
+    inbound_records: number;
+    PP_records: number;
+    past_due_count: number;
+    CRT_record_count: number;
+    CRT_past_due_count: number;
+    COT_record_count: number;
+    COT_past_due_count: number;
+  };
+  date: string;
 }
 
 // Frontend memory cache for API responses
@@ -55,6 +144,7 @@ export function PastRecords() {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cacheReady, setCacheReady] = useState(false); // <-- Add state
 
   // For calendar logic
   const today = new Date();
@@ -71,17 +161,95 @@ export function PastRecords() {
     console.log("Cache cleared");
   };
 
+  // Helper to get change and direction label
+  const getChangeLabel = (current: number, prev: number) => {
+    if (prev === undefined || prev === 0) return null;
+    const change = ((current - prev) / prev) * 100;
+    const direction = change > 0 ? "Upward" : change < 0 ? "Downward" : "";
+    return (
+      <span
+        className={`ml-2 text-xs ${
+          change > 0
+            ? "text-green-400"
+            : change < 0
+            ? "text-red-400"
+            : "text-gray-400"
+        }`}
+      >
+        {direction && (
+          <>
+            {direction} {Math.abs(change).toFixed(1)}%
+          </>
+        )}
+      </span>
+    );
+  };
+
+  // Helper to get only the arrow and percentage (no "Upward"/"Downward" text)
+  // Further reduced glow and use zoom in/out animation instead of bounce
+  const getChangeArrow = (current: number, prev: number) => {
+    if (prev === undefined || prev === 0) return null;
+    const change = ((current - prev) / prev) * 100;
+    const arrowAnimation = {
+      animation: "arrow-zoom 1.2s infinite alternate",
+      verticalAlign: "middle",
+    };
+    if (change > 0) {
+      return (
+        <span
+          className="ml-2 text-xs flex items-center font-semibold"
+          style={{
+            color: "#34d399",
+            textShadow: "0 0 1px #34d399",
+          }}
+        >
+          <TrendingUp
+            className="inline w-4 h-4 mr-1"
+            style={{
+              ...arrowAnimation,
+              filter: "drop-shadow(0 0 1px #34d399)",
+            }}
+          />
+          {Math.abs(change).toFixed(1)}%
+        </span>
+      );
+    }
+    if (change < 0) {
+      return (
+        <span
+          className="ml-2 text-xs flex items-center font-semibold"
+          style={{
+            color: "#f87171",
+            textShadow: "0 0 1px #f87171",
+          }}
+        >
+          <TrendingDown
+            className="inline w-4 h-4 mr-1"
+            style={{
+              ...arrowAnimation,
+              filter: "drop-shadow(0 0 1px #f87171)",
+            }}
+          />
+          {Math.abs(change).toFixed(1)}%
+        </span>
+      );
+    }
+    return <span className="ml-2 text-xs text-gray-400">0.0%</span>;
+  };
+
   // Optimized fetch records with caching
-  async function fetchRecentRecords(days: number) {
-    const cacheKey = `records-${days}`;
+  async function fetchRecords(startDate?: string, endDate?: string) {
+    const cacheKey = `records-${startDate || "default"}-${
+      endDate || "default"
+    }`;
     const now = Date.now();
 
     // Check cache first
     if (cache.has(cacheKey)) {
       const cached = cache.get(cacheKey)!;
       if (now - cached.timestamp < CACHE_DURATION) {
-        console.log(`Using cached data for ${days} days`);
         setRecords(cached.data);
+        setCacheReady(true); // <-- Set cacheReady immediately if using cache
         return;
       }
     }
@@ -90,8 +258,17 @@ export function PastRecords() {
     setError(null);
 
     try {
-      console.log(`Fetching records for ${days} days...`);
-      const url = `/api/proxy?days=${days}`;
+      let url = "/proxy/past-records-range?";
+      if (startDate && endDate) {
+        url += `startDate=${startDate}&endDate=${endDate}`;
+        console.log(`Fetching records from ${startDate} to ${endDate}...`);
+      } else if (startDate) {
+        url += `startDate=${startDate}&endDate=${startDate}`; // Fetch for a single day
+        console.log(`Fetching records for ${startDate}...`);
+      } else {
+        url += `days=15`; // Default to 15 days if no specific range
+        console.log(`Fetching records for last 15 days...`);
+      }
       console.log(`Making request to: ${url}`);
 
       const res = await fetch(url);
@@ -111,7 +288,7 @@ export function PastRecords() {
       const text = await res.text();
       console.log("Raw response:", text);
 
-      let apiResponse: APIResponse;
+      let apiResponse: APIRecord[];
       try {
         apiResponse = JSON.parse(text);
       } catch {
@@ -124,15 +301,19 @@ export function PastRecords() {
       console.log("Fetched raw data:", apiResponse);
 
       // Safeguard against undefined data and filter out 404 responses
-      const validRecords = (apiResponse.data || [])
-        .filter((record) => {
-          console.log(
-            `Record ${record.date}: statusCode=${
-              record.statusCode
-            }, body type=${typeof record.body}`
-          );
-          return record.statusCode === 200 && typeof record.body === "object";
-        })
+      // Ensure apiResponse is always an array
+      let recordsArray: APIRecord[] = [];
+      if (Array.isArray(apiResponse)) {
+        recordsArray = apiResponse;
+      } else if (apiResponse && Array.isArray((apiResponse as any).data)) {
+        recordsArray = (apiResponse as any).data;
+      }
+
+      const validRecords = recordsArray
+        .filter(
+          (record) =>
+            record.statusCode === 200 && typeof record.body === "object"
+        )
         .map((record) => {
           const body = record.body as {
             sales_record_count: number;
@@ -145,60 +326,73 @@ export function PastRecords() {
             COT_record_count: number;
             COT_past_due_count: number;
           };
-          const transformed = {
+          return {
             date: record.date,
             totalOutbound: body.outbound_records || 0,
-            reminderOutbound: body.outbound_records || 0, // Using same value as total for now
+            reminderOutbound: body.outbound_records || 0,
             reminderInbound: body.inbound_records || 0,
             reminderPPWeb: body.PP_records || 0,
             salesPastDue: body.past_due_count || 0,
             crtDialerPastDue: body.CRT_past_due_count || 0,
           } as DialerRecord;
-          console.log(`Transformed record for ${record.date}:`, transformed);
-          return transformed;
         });
 
-      console.log("Parsed recordsArray:", validRecords);
-      console.log(`Setting ${validRecords.length} records to state`);
-
-      // Cache the results
-      cache.set(cacheKey, { data: validRecords, timestamp: now });
       setRecords(validRecords);
-    } catch (err: unknown) {
-      console.error(err);
-      setError((err as Error)?.message || "Error fetching past records");
-      setRecords([]);
+      cache.set(cacheKey, { data: validRecords, timestamp: Date.now() });
+      setCacheReady(true); // <-- Set cacheReady after fetch
+
+      // Auto-select the latest date if only one record is returned
+      if (validRecords.length === 1) {
+        setSelectedDate(validRecords[0].date);
+      } else {
+        setSelectedDate("");
+      }
+    } catch (err) {
+      console.error("Error in fetchRecords:", err);
+      setError(err.message);
+      setCacheReady(false); // <-- Reset on error
     } finally {
       setLoading(false);
     }
   }
 
-  // Initial fetch with lazy loading strategy
   useEffect(() => {
-    fetchRecentRecords(6);
+    setCacheReady(cache.size > 0); // <-- Set cacheReady on mount if cache exists
+    fetchRecords();
+
+    // Daily refetch at midnight (server time)
+    const now = new Date();
+    const msTillMidnight =
+      new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).getTime() -
+      now.getTime();
+    const timeoutId = setTimeout(() => {
+      console.log("Midnight reached, refetching records...");
+      fetchRecords();
+      // Schedule next midnight fetch
+      setInterval(() => {
+        console.log("Midnight interval, refetching records...");
+        fetchRecords();
+      }, 24 * 60 * 60 * 1000); // 24 hours
+    }, msTillMidnight);
+
+    return () => {
+      clearTimeout(timeoutId);
+      console.log("Component unmounted, timeout cleared");
+    };
   }, []);
 
-  // Filtering logic (normalize dates)
+  // Filter records based on searchTerm
   useEffect(() => {
-    let data = [...records];
-    console.log(
-      `Filtering: ${records.length} records, selectedDate="${selectedDate}", searchTerm="${searchTerm}"`
-    );
-
-    // If user selected a date, use that to filter
-    if (selectedDate) {
-      data = data.filter((r) => toISO(r.date) === toISO(selectedDate));
-      console.log(`After date filter: ${data.length} records`);
+    if (searchTerm) {
+      const lowerCaseSearchTerm = searchTerm.toLowerCase();
+      const filtered = records.filter((record) =>
+        record.date.toLowerCase().includes(lowerCaseSearchTerm)
+      );
+      setFilteredRecords(filtered);
+    } else {
+      setFilteredRecords(records);
     }
-    // Else if user typed something in the search input
-    else if (searchTerm) {
-      data = data.filter((r) => toISO(r.date).includes(searchTerm.trim()));
-      console.log(`After search filter: ${data.length} records`);
-    }
-
-    console.log(`Final filtered records:`, data);
-    setFilteredRecords(data);
-  }, [records, selectedDate, searchTerm]);
+  }, [records, searchTerm]);
 
   // Calendar helpers
   const daysInMonth = new Date(
@@ -239,7 +433,15 @@ export function PastRecords() {
     );
 
   return (
-    <div className="p-6 h-full bg-gradient-to-br from-gray-900 to-black overflow-auto">
+    <div className="p-6 h-full bg-gray-800 overflow-auto">
+      <style>
+        {`
+          @keyframes arrow-zoom {
+            0% { transform: scale(1);}
+            100% { transform: scale(1.25);}
+          }
+        `}
+      </style>
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
         <div className="glassmorphism p-6 rounded-xl shadow-lg">
@@ -255,7 +457,7 @@ export function PastRecords() {
         </div>
 
         {/* Filters */}
-        <div className="glassmorphism p-5 rounded-xl shadow-lg">
+        <div className="glassmorphism p-5 rounded-xl shadow-lg relative z-20">
           <div className="flex flex-col sm:flex-row gap-4">
             {/* Search */}
             <div className="flex items-center gap-3 flex-1 border border-cyan-500/20 rounded-lg p-2 bg-gray-800/50">
@@ -283,7 +485,7 @@ export function PastRecords() {
                 onClick={() => setIsCalendarOpen(!isCalendarOpen)}
               />
               {isCalendarOpen && (
-                <div className="absolute top-12 left-0 z-10 glassmorphism p-4 rounded-xl shadow-lg bg-gray-900/80 w-64">
+                <div className="absolute top-full mt-2 left-0 z-50 p-4 rounded-xl shadow-lg bg-gray-800 w-64">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-white font-mono text-sm">
                       {currentMonth.toLocaleString("en-US", {
@@ -367,7 +569,7 @@ export function PastRecords() {
             <button
               onClick={() => {
                 clearCache();
-                fetchRecentRecords(6);
+                fetchRecords();
               }}
               disabled={loading}
               className="px-6 py-2 bg-cyan-800 hover:bg-cyan-600 rounded-lg text-white font-medium transition-all shadow active:scale-95 disabled:opacity-60"
@@ -376,10 +578,40 @@ export function PastRecords() {
             </button>
           </div>
           {error && <div className="text-red-400 mt-2">{error}</div>}
-          <div className="text-xs text-gray-500 mt-2">
-            {cache.size > 0
-              ? "⚡ Cached data available"
-              : "🔄 Fetching fresh data"}
+          <style>
+            {`
+              @keyframes superhero-entry {
+                0% {
+                  opacity: 0;
+                  transform: scale(0.5) translateY(-20px);
+                }
+                50% {
+                  opacity: 1;
+                  transform: scale(1.2);
+                  color: #ffdd00;
+                  text-shadow: 0 0 10px #ff8c00;
+                }
+                100% {
+                  opacity: 1;
+                  transform: scale(1) translateY(0);
+                }
+              }
+              .animate-superhero-entry {
+                animation: superhero-entry 0.5s ease-out;
+              }
+            `}
+          </style>
+          <div className="text-xs text-white mt-2 flex items-center">
+            {cacheReady && cache.size > 0 ? (
+              <span className="animate-superhero-entry">
+                ⚡ Cached data available
+              </span>
+            ) : (
+              <>
+                <RefreshCw className="w-3 h-3 mr-2 animate-spin" />
+                Fetching fresh data
+              </>
+            )}
           </div>
         </div>
 
@@ -396,28 +628,28 @@ export function PastRecords() {
           ) : (
             <>
               <div className="overflow-x-auto">
-                <table className="w-full text-white">
+                <table className="w-full text-white min-w-[700px]">
                   <thead>
-                    <tr className="border-b border-cyan-500/20">
-                      <th className="text-left py-4 px-6 font-semibold text-gray-300">
+                    <tr className="border-b border-cyan-500/20 text-xs md:text-sm">
+                      <th className="text-left py-2 px-3 font-semibold text-gray-300 whitespace-nowrap">
                         Date
                       </th>
-                      <th className="text-right py-4 px-6 font-semibold text-gray-300">
+                      <th className="text-right py-2 px-3 font-semibold text-gray-300 whitespace-nowrap">
                         Total Outbound
                       </th>
-                      <th className="text-right py-4 px-6 font-semibold text-gray-300">
+                      <th className="text-right py-2 px-3 font-semibold text-gray-300 whitespace-nowrap">
                         Reminder Outbound
                       </th>
-                      <th className="text-right py-4 px-6 font-semibold text-gray-300">
+                      <th className="text-right py-2 px-3 font-semibold text-gray-300 whitespace-nowrap">
                         Reminder Inbound
                       </th>
-                      <th className="text-right py-4 px-6 font-semibold text-gray-300">
+                      <th className="text-right py-2 px-3 font-semibold text-gray-300 whitespace-nowrap">
                         PP/Web
                       </th>
-                      <th className="text-right py-4 px-6 font-semibold text-gray-300">
+                      <th className="text-right py-2 px-3 font-semibold text-gray-300 whitespace-nowrap">
                         Sales Past Due
                       </th>
-                      <th className="text-right py-4 px-6 font-semibold text-gray-300">
+                      <th className="text-right py-2 px-3 font-semibold text-gray-300 whitespace-nowrap">
                         CRT Past Due
                       </th>
                     </tr>
@@ -433,71 +665,75 @@ export function PastRecords() {
                           <td className="py-3 px-6 text-sm font-mono">
                             {formatDate(record.date)}
                           </td>
-                          {/* Total Outbound with trend */}
+                          {/* Total Outbound with arrow/percent */}
                           <td className="py-3 px-6 text-right">
                             <div className="flex items-center justify-end gap-3">
                               <span className="font-mono text-sm">
                                 {record.totalOutbound.toLocaleString()}
                               </span>
-                              {previousRecord && (
-                                <div className="flex items-center gap-1">
-                                  {getTrendIcon(
-                                    getChange(
-                                      record.totalOutbound,
-                                      previousRecord.totalOutbound
-                                    )
-                                  )}
-                                  <span className="text-xs text-gray-400">
-                                    {Math.abs(
-                                      getChange(
-                                        record.totalOutbound,
-                                        previousRecord.totalOutbound
-                                      )
-                                    ).toFixed(1)}
-                                    %
-                                  </span>
-                                </div>
-                              )}
+                              {previousRecord &&
+                                getChangeArrow(
+                                  record.totalOutbound,
+                                  previousRecord.totalOutbound
+                                )}
                             </div>
                           </td>
-                          {/* Reminder Outbound with trend */}
+                          {/* Reminder Outbound with arrow/percent */}
                           <td className="py-3 px-6 text-right">
                             <div className="flex items-center justify-end gap-3">
                               <span className="font-mono text-sm">
                                 {record.reminderOutbound.toLocaleString()}
                               </span>
-                              {previousRecord && (
-                                <div className="flex items-center gap-1">
-                                  {getTrendIcon(
-                                    getChange(
-                                      record.reminderOutbound,
-                                      previousRecord.reminderOutbound
-                                    )
-                                  )}
-                                  <span className="text-xs text-gray-400">
-                                    {Math.abs(
-                                      getChange(
-                                        record.reminderOutbound,
-                                        previousRecord.reminderOutbound
-                                      )
-                                    ).toFixed(1)}
-                                    %
-                                  </span>
-                                </div>
-                              )}
+                              {previousRecord &&
+                                getChangeArrow(
+                                  record.reminderOutbound,
+                                  previousRecord.reminderOutbound
+                                )}
                             </div>
                           </td>
+                          {/* Reminder Inbound with arrow/percent */}
                           <td className="py-3 px-6 text-right font-mono text-sm">
-                            {record.reminderInbound}
+                            <div className="flex items-center justify-end gap-3">
+                              {record.reminderInbound}
+                              {previousRecord &&
+                                getChangeArrow(
+                                  record.reminderInbound,
+                                  previousRecord.reminderInbound
+                                )}
+                            </div>
                           </td>
+                          {/* PP/Web with arrow/percent */}
                           <td className="py-3 px-6 text-right font-mono text-sm">
-                            {record.reminderPPWeb}
+                            <div className="flex items-center justify-end gap-3">
+                              {record.reminderPPWeb}
+                              {previousRecord &&
+                                getChangeArrow(
+                                  record.reminderPPWeb,
+                                  previousRecord.reminderPPWeb
+                                )}
+                            </div>
                           </td>
+                          {/* Sales Past Due with arrow/percent */}
                           <td className="py-3 px-6 text-right font-mono text-sm">
-                            {record.salesPastDue}
+                            <div className="flex items-center justify-end gap-3">
+                              {record.salesPastDue}
+                              {previousRecord &&
+                                getChangeArrow(
+                                  record.salesPastDue,
+                                  previousRecord.salesPastDue
+                                )}
+                            </div>
                           </td>
+                          {/* CRT Past Due with arrow/percent */}
                           <td className="py-3 px-6 text-right font-mono text-sm">
-                            {record.crtDialerPastDue}
+                            <div className="flex items-center justify-end gap-3">
+                              {record.crtDialerPastDue}
+                              {previousRecord &&
+                                getChangeArrow(
+                                  record.crtDialerPastDue,
+                                  previousRecord.crtDialerPastDue
+                                )}
+                            </div>
                           </td>
                         </tr>
                       );

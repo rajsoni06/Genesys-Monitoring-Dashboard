@@ -563,13 +563,13 @@ const GDF = () => {
                       ? "left-full ml-2 top-[25%] transform -translate-y-1/2"
                       : // Nodes that should appear to the right (queue) - original position
                       ["queue"].includes(node.id)
-                      ? "left-full ml-2 top-1/2 transform -translate-y-1/2"
+                      ? "bottom-full mb-2 left-1/2 transform -translate-x-1/2"
                       : // Nodes that should appear to the left (observability, postlogin)
                       ["observability", "postlogin"].includes(node.id)
                       ? "right-full mr-2 top-1/2 transform -translate-y-1/2"
                       : // Nodes that should appear below (siebel)
                       ["siebel"].includes(node.id)
-                      ? "top-full mt-2 left-1/2 transform -translate-x-1/2"
+                      ? "bottom-full mb-2 left-1/2 transform -translate-x-1/2"
                       : // Default (if any other node is added later) - keep as right-full for now
                         "right-full mr-2 top-1/2 transform -translate-y-1/2"
                   }`}

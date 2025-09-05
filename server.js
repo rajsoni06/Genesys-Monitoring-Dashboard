@@ -54,37 +54,41 @@ app.get("/proxy/past-records-range", async (req, res) => {
     if (isNaN(days) || days < 1 || days > 30) days = 6;
 
     const today = new Date();
-    const results = [];
+    const promises = [];
 
     for (let i = 0; i < days; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
       const dateStr = d.toISOString().slice(0, 10);
 
-      try {
-        const dayRes = await fetch(
-          "https://hj3m0fs93m.execute-api.us-east-1.amazonaws.com/prod",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ date: dateStr }),
-          }
-        );
-        if (dayRes.ok) {
-          let record = await dayRes.json();
-          if (record && typeof record === "object" && !Array.isArray(record)) {
-            record.date = dateStr;
-            results.push(record);
-          }
-        } else {
-          // Try to extract error info from the day API
-          const errorBody = await dayRes.text();
-          console.warn(`[GET /proxy/past-records-range] No data for ${dateStr}:`, errorBody);
+      const promise = fetch(
+        "https://hj3m0fs93m.execute-api.us-east-1.amazonaws.com/prod",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ date: dateStr }),
         }
-      } catch (err) {
-        console.warn(`[GET /proxy/past-records-range] Error fetching ${dateStr}: ${err}`);
-      }
+      )
+        .then((res) => {
+          if (res.ok) {
+            return res.json().then((record) => {
+              if (record && typeof record === "object" && !Array.isArray(record)) {
+                record.date = dateStr;
+                return record;
+              }
+              return null;
+            });
+          }
+          return null;
+        })
+        .catch((err) => {
+          console.warn(`[GET /proxy/past-records-range] Error fetching ${dateStr}: ${err}`);
+          return null;
+        });
+      promises.push(promise);
     }
+
+    const results = (await Promise.all(promises)).filter(Boolean);
     // Logging for debug: comment out if not needed
     console.log(`[GET /proxy/past-records-range] Returning ${results.length} records for last ${days} days`);
     res.json(results);

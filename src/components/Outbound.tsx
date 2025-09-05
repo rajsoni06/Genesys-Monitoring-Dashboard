@@ -553,7 +553,7 @@ const Outbound = () => {
                       : ["siebel", "tibco"].includes(node.id)
                       ? "top-full mt-2 left-1/2 transform -translate-x-1/2"
                       : ["genesys-direct"].includes(node.id)
-                      ? "left-full ml-2 top-1/2 transform -translate-y-1/2"
+                      ? "right-full mr-2 top-1/2 transform -translate-y-1/2"
                       : node.id === "siebel-iws"
                       ? "right-[20%] pr-8 top-[5%] transform -translate-y-1/2"
                       : node.id === "genesys-cloud"

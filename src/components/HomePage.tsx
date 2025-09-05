@@ -8,8 +8,10 @@ import {
   CheckCircle2,
   XCircle,
   ListChecks,
+  LoaderCircle, // <-- Add LoaderCircle icon for spinner
 } from "lucide-react";
 import { fetchSchedulerData } from "@/lib/fetchSchedulerData";
+import { fetchTodaysDialerRecords, DialerRecord } from "./PastRecords"; // Import from PastRecords.tsx
 
 interface SchedulerStats {
   total: number;
@@ -24,6 +26,13 @@ interface AWSSchedulerItem {
   status: "ENABLED" | "DISABLED";
 }
 
+interface HomePageDialerRecord {
+  category: string;
+  count: number;
+  change: number;
+  trend: "up" | "down" | "stable";
+}
+
 export function HomePage() {
   const [schedulerStats, setSchedulerStats] = useState<SchedulerStats>({
     total: 0,
@@ -33,9 +42,12 @@ export function HomePage() {
   });
   const [currentTime, setCurrentTime] = useState(new Date());
   const [schedulerData, setSchedulerData] = useState<AWSSchedulerItem[]>([]);
-
+  // State for today's and previous day's records
+  const [todaysRecord, setTodaysRecord] = useState<DialerRecord | null>(null);
+  const [prevRecord, setPrevRecord] = useState<DialerRecord | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDialerLoading, setIsDialerLoading] = useState<boolean>(true); // <-- Add loading state for dialer records
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -70,47 +82,74 @@ export function HomePage() {
     fetchData();
   }, []);
 
-  const dialerRecords = [
-    {
-      category: "Total Outbound Campaign Records",
-      count: 5847,
-      change: 8.2,
-      trend: "up",
-    },
-    {
-      category: "Reminder Outbound Records",
-      count: 4960,
-      change: 5.1,
-      trend: "up",
-    },
-    {
-      category: "Reminder Inbound Records",
-      count: 4,
-      change: 0,
-      trend: "stable",
-    },
-    {
-      category: "Reminder PP/Web Records",
-      count: 91,
-      change: 17.5,
-      trend: "up",
-    },
-    {
-      category: "Sales Past Due Records",
-      count: 0,
-      change: 0,
-      trend: "stable",
-    },
-    {
-      category: "CRT Dialer Past Due Records",
-      count: 357,
-      change: 8.7,
-      trend: "up",
-    },
-  ];
+  // Fetch today's and previous day's dialer records
+  useEffect(() => {
+    setIsDialerLoading(true);
+    fetchTodaysDialerRecords()
+      .then(({ today, previous }) => {
+        setTodaysRecord(today);
+        setPrevRecord(previous);
+      })
+      .catch(() => {
+        setTodaysRecord(null);
+        setPrevRecord(null);
+      })
+      .finally(() => setIsDialerLoading(false));
+  }, []);
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString("en-GB", {
+  // Helper for glowing arrow and percent (reuse but with less glow and animation)
+  const getGlowingArrow = (current: number, prev: number) => {
+    if (prev === undefined || prev === 0)
+      return <span className="ml-2 text-xs text-gray-400">0.0%</span>;
+    const change = ((current - prev) / prev) * 100;
+    if (change > 0) {
+      return (
+        <span
+          className="ml-2 text-xs flex items-center font-semibold"
+          style={{
+            color: "#34d399",
+            textShadow: "0 0 1px #34d399",
+          }}
+        >
+          <TrendingUp
+            className="inline w-4 h-4 mr-1"
+            style={{
+              animation: "arrow-zoom 1.2s infinite alternate",
+              verticalAlign: "middle",
+              filter: "drop-shadow(0 0 1px #34d399)",
+            }}
+          />
+          {Math.abs(change).toFixed(1)}%
+        </span>
+      );
+    }
+    if (change < 0) {
+      return (
+        <span
+          className="ml-2 text-xs flex items-center font-semibold"
+          style={{
+            color: "#f87171",
+            textShadow: "0 0 1px #f87171",
+          }}
+        >
+          <TrendingDown
+            className="inline w-4 h-4 mr-1"
+            style={{
+              animation: "arrow-zoom 1.2s infinite alternate",
+              verticalAlign: "middle",
+              filter: "drop-shadow(0 0 1px #f87171)",
+            }}
+          />
+          {Math.abs(change).toFixed(1)}%
+        </span>
+      );
+    }
+    return <span className="ml-2 text-xs text-gray-400">0.0%</span>;
+  };
+
+  const formatDate = (date: Date | string) => {
+    const d = typeof date === "string" ? new Date(date) : date;
+    return d.toLocaleDateString("en-GB", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
@@ -189,6 +228,14 @@ export function HomePage() {
 
   return (
     <div className="h-full w-full gradient-bg transition-all duration-700">
+      <style>
+        {`
+          @keyframes arrow-zoom {
+            0% { transform: scale(1);}
+            100% { transform: scale(1.25);}
+          }
+        `}
+      </style>
       <div className="h-full w-full p-4 space-y-4">
         {/* Welcome Section */}
         <div className="glass-card p-4 rounded-2xl shadow flex flex-col md:flex-row items-center justify-between gap-4">
@@ -265,6 +312,9 @@ export function HomePage() {
               <h2 className="text-lg font-semibold text-white">
                 Today's Dialer Records ({formatDate(currentTime)})
               </h2>
+              {isDialerLoading && (
+                <LoaderCircle className="animate-spin ml-2 text-blue-400" />
+              )}
             </div>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
@@ -282,44 +332,75 @@ export function HomePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {dialerRecords.map((record, index) => (
-                    <tr
-                      key={index}
-                      className="border-b border-blue-200 hover:bg-blue-900/10 transition-colors"
-                    >
-                      <td className="py-2 px-1 text-sm text-blue-50 whitespace-nowrap">
-                        {record.category}
-                      </td>
-                      <td className="py-2 px-1 text-right font-mono font-semibold text-base text-blue-50">
-                        {record.count.toLocaleString()}
-                      </td>
-                      <td className="py-2 px-1 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {record.trend === "up" && (
-                            <>
-                              <TrendingUp className="w-4 h-4 neon-green pulse-arrow" />
-                              <span className="text-green-400 text-sm font-medium font-mono">
-                                +{record.change}%
-                              </span>
-                            </>
-                          )}
-                          {record.trend === "down" && (
-                            <>
-                              <TrendingDown className="w-4 h-4 neon-red pulse-arrow-red" />
-                              <span className="text-red-400 text-base font-medium font-mono">
-                                {record.change}%
-                              </span>
-                            </>
-                          )}
-                          {record.trend === "stable" && (
-                            <span className="text-blue-200 text-sm">
-                              No change
-                            </span>
-                          )}
-                        </div>
+                  {isDialerLoading ? (
+                    <tr>
+                      <td
+                        colSpan={3}
+                        className="py-8 text-center text-blue-200"
+                      >
+                        <LoaderCircle className="animate-spin inline w-6 h-6 mr-2 text-blue-400" />
+                        Loading today's dialer records...
                       </td>
                     </tr>
-                  ))}
+                  ) : todaysRecord && Object.keys(todaysRecord).length > 0 ? (
+                    [
+                      {
+                        label: "Total Outbound Campaign Records",
+                        value: todaysRecord.totalOutbound,
+                        prev: prevRecord?.totalOutbound,
+                      },
+                      {
+                        label: "Reminder Outbound Records",
+                        value: todaysRecord.reminderOutbound,
+                        prev: prevRecord?.reminderOutbound,
+                      },
+                      {
+                        label: "Reminder Inbound Records",
+                        value: todaysRecord.reminderInbound,
+                        prev: prevRecord?.reminderInbound,
+                      },
+                      {
+                        label: "Reminder PP/Web Records",
+                        value: todaysRecord.reminderPPWeb,
+                        prev: prevRecord?.reminderPPWeb,
+                      },
+                      {
+                        label: "Sales Past Due Records",
+                        value: todaysRecord.salesPastDue,
+                        prev: prevRecord?.salesPastDue,
+                      },
+                      {
+                        label: "CRT Dialer Past Due Records",
+                        value: todaysRecord.crtDialerPastDue,
+                        prev: prevRecord?.crtDialerPastDue,
+                      },
+                    ].map((row, idx) => (
+                      <tr
+                        key={row.label}
+                        className="border-b border-blue-200 hover:bg-blue-900/10 transition-colors"
+                      >
+                        <td className="py-2 px-1 text-sm text-blue-50 whitespace-nowrap">
+                          {row.label}
+                        </td>
+                        <td className="py-2 px-1 text-right font-mono font-semibold text-base text-blue-50">
+                          {row.value?.toLocaleString?.() ?? "0"}
+                        </td>
+                        <td className="py-2 px-1 text-right">
+                          {prevRecord && row.prev !== undefined ? (
+                            getGlowingArrow(row.value, row.prev)
+                          ) : (
+                            <span className="text-xs text-gray-400">0.0%</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={3} className="py-8 text-center text-red-300">
+                        No dialer records found for today.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

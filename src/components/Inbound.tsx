@@ -537,7 +537,9 @@ const Inbound = () => {
         {nodes.map((node) => (
           <div
             key={node.id}
-            className={`absolute transform -translate-x-1/2 -translate-y-1/2 ${node.position}`}
+            className={`absolute transform -translate-x-1/2 -translate-y-1/2 ${node.position} ${
+              hoveredNode === node.id ? "z-20" : "z-10"
+            }`}
           >
             <div
               onMouseEnter={() => setHoveredNode(node.id)}
@@ -562,16 +564,14 @@ const Inbound = () => {
               {hoveredNode === node.id && (
                 <div
                   className={`absolute z-50 w-48 p-2 text-xs bg-slate-950 border border-cyan-500/50 rounded-md shadow-lg ${
-                    ["customer", "provider", "backup", "genesys"].includes(
-                      node.id
-                    )
+                    ["provider", "backup"].includes(node.id)
                       ? "top-full mt-2 left-1/2 transform -translate-x-1/2"
-                      : ["siebel"].includes(node.id)
+                      : ["siebel", "genesys", "customer"].includes(node.id)
                       ? "bottom-full mb-2 left-1/2 transform -translate-x-1/2"
                       : ["queues"].includes(node.id)
-                      ? "left-full ml-2 top-1/2 transform -translate-y-1/2"
+                      ? "bottom-full mb-2 left-1/2 transform -translate-x-1/2"
                       : node.id === "agent"
-                      ? "right-full mr-2 top-1/2 transform -translate-y-1/2"
+                      ? "bottom-full mb-2 left-1/2 transform -translate-x-1/2"
                       : "right-full mr-2 top-1/2 transform -translate-y-1/2"
                   }`}
                 >
