@@ -207,9 +207,45 @@
 
 @layer components {
   /* Glassmorphism base class */
-  .glass {
+    .glass {
     @apply backdrop-blur-xl bg-glass-bg/40 border border-glass-border/50;
     box-shadow: var(--shadow-glass);
+  }
+  
+  /* Glowing Border Effect */
+  .glowing-border-effect {
+    position: relative;
+    overflow: hidden; /* Ensures the pseudo-element doesn't overflow */
+  }
+  
+  .glowing-border-effect::before {
+    content: '';
+    position: absolute;
+    top: -5px; /* Adjust to control border thickness */
+    left: -5px; /* Adjust to control border thickness */
+    right: -5px; /* Adjust to control border thickness */
+    bottom: -5px; /* Adjust to control border thickness */
+    background: var(--border-gradient);
+    border-radius: inherit; /* Inherit border-radius from parent */
+    z-index: -1;
+    animation: rotate-gradient 4s linear infinite; /* Animation for rotation */
+    filter: blur(8px); /* Glowing effect */
+    opacity: 0.8;
+    transition: opacity 0.3s ease-in-out;
+  }
+  
+  .glowing-border-effect:hover::before {
+    opacity: 1;
+    filter: blur(12px); /* Intensify glow on hover */
+  }
+  
+  @keyframes rotate-gradient {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
   
   /* Simple border without animation */
@@ -304,4 +340,23 @@
   50%  { transform: translateY(3px); }
   75%  { transform: translateY(-2px); }
   100% { transform: translateY(0); }
+}
+
+@keyframes pulse-line {
+  0% {
+    stroke-width: 2px;
+    opacity: 0.7;
+  }
+  50% {
+    stroke-width: 3px; /* Decreased glow */
+    opacity: 0.8; /* Decreased glow */
+  }
+  100% {
+    stroke-width: 2px;
+    opacity: 0.7;
+  }
+}
+
+.animate-pulse-line {
+  animation: pulse-line 3.3s ease-in-out infinite; /* Changed duration */
 }

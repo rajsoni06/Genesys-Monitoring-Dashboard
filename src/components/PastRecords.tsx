@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
+  X,
 } from "lucide-react";
 
 export interface DialerRecord {
@@ -266,8 +267,8 @@ export function PastRecords() {
         url += `startDate=${startDate}&endDate=${startDate}`; // Fetch for a single day
         console.log(`Fetching records for ${startDate}...`);
       } else {
-        url += `days=15`; // Default to 15 days if no specific range
-        console.log(`Fetching records for last 15 days...`);
+        url += `days=19`; // Default to 15 days if no specific range
+        console.log(`Fetching records for last 19 days...`);
       }
       console.log(`Making request to: ${url}`);
 
@@ -381,18 +382,21 @@ export function PastRecords() {
     };
   }, []);
 
-  // Filter records based on searchTerm
+  // Filter records based on searchTerm and selectedDate
   useEffect(() => {
+    let filtered = records;
     if (searchTerm) {
       const lowerCaseSearchTerm = searchTerm.toLowerCase();
-      const filtered = records.filter((record) =>
+      filtered = records.filter((record) =>
         record.date.toLowerCase().includes(lowerCaseSearchTerm)
       );
-      setFilteredRecords(filtered);
-    } else {
-      setFilteredRecords(records);
+    } else if (selectedDate) {
+      filtered = records.filter((record) =>
+        record.date.startsWith(selectedDate)
+      );
     }
-  }, [records, searchTerm]);
+    setFilteredRecords(filtered);
+  }, [records, searchTerm, selectedDate]);
 
   // Calendar helpers
   const daysInMonth = new Date(
@@ -433,7 +437,7 @@ export function PastRecords() {
     );
 
   return (
-    <div className="p-6 h-full bg-gray-800 overflow-auto">
+    <div className="p-6 h-full bg-gray-900 overflow-auto">
       <style>
         {`
           @keyframes arrow-zoom {
@@ -562,8 +566,9 @@ export function PastRecords() {
                 setSelectedDate("");
                 setSearchTerm("");
               }}
-              className="px-3 py-2 bg-cyan-600/80 hover:bg-cyan-500/80 rounded-lg text-white font-sm transition-all duration-300 shadow-md hover:shadow-lg"
+              className="flex items-center justify-center gap-2 px-3 py-1 bg-gradient-to-r from-red-500 to-orange-500 text-white font-semibold rounded-lg shadow-md hover:shadow-lg hover:from-red-600 hover:to-orange-600 transition-all duration-300 transform hover:scale-105 active:scale-95"
             >
+              <X className="w-4 h-4" />
               Clear Filters
             </button>
             <button
@@ -572,8 +577,11 @@ export function PastRecords() {
                 fetchRecords();
               }}
               disabled={loading}
-              className="px-6 py-2 bg-cyan-800 hover:bg-cyan-600 rounded-lg text-white font-medium transition-all shadow active:scale-95 disabled:opacity-60"
+              className="flex items-center justify-center gap-2 px-3 py-1 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-lg shadow-md hover:shadow-lg hover:from-cyan-600 hover:to-blue-600 transition-all duration-300 transform hover:scale-105 active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
             >
+              <RefreshCw
+                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+              />
               {loading ? "Refreshing..." : "Refresh"}
             </button>
           </div>

@@ -352,7 +352,7 @@ const Inbound = () => {
   const getPulseOffset = (index: number) => (pulsePhase + index * 10) % 60;
 
   return (
-    <div className="mt-[-1rem] p-4 font-sans bg-slate-900 text-white">
+    <div className="mt-[0.1rem] p-4 font-sans bg-slate-900 text-white">
       <div className="flex flex-col items-center mb-1">
         <h1 className="text-xl font-bold text-white">
           Inbound Call Flow Architecture
@@ -537,9 +537,9 @@ const Inbound = () => {
         {nodes.map((node) => (
           <div
             key={node.id}
-            className={`absolute transform -translate-x-1/2 -translate-y-1/2 ${node.position} ${
-              hoveredNode === node.id ? "z-20" : "z-10"
-            }`}
+            className={`absolute transform -translate-x-1/2 -translate-y-1/2 ${
+              node.position
+            } ${hoveredNode === node.id ? "z-20" : "z-10"}`}
           >
             <div
               onMouseEnter={() => setHoveredNode(node.id)}

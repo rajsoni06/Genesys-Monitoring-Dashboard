@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Clock,
   TrendingUp,
@@ -8,10 +8,20 @@ import {
   CheckCircle2,
   XCircle,
   ListChecks,
-  LoaderCircle, // <-- Add LoaderCircle icon for spinner
+  LoaderCircle,
 } from "lucide-react";
 import { fetchSchedulerData } from "@/lib/fetchSchedulerData";
-import { fetchTodaysDialerRecords, DialerRecord } from "./PastRecords"; // Import from PastRecords.tsx
+import { fetchTodaysDialerRecords, DialerRecord } from "./PastRecords";
+import ServiceNowIncidentsChart from "./ServiceNowIncidentsChart";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 
 interface SchedulerStats {
   total: number;
@@ -26,12 +36,203 @@ interface AWSSchedulerItem {
   status: "ENABLED" | "DISABLED";
 }
 
-interface HomePageDialerRecord {
-  category: string;
-  count: number;
-  change: number;
-  trend: "up" | "down" | "stable";
-}
+const AnalogClock = ({ time }: { time: Date }) => {
+  const seconds = time.getSeconds();
+  const minutes = time.getMinutes();
+  const hours = time.getHours();
+
+  const secondHandAngle = seconds * 6;
+  const minuteHandAngle = minutes * 6 + seconds * 0.1;
+  const hourHandAngle = (hours % 12) * 30 + minutes * 0.5;
+
+  const numbers = Array.from({ length: 12 }, (_, i) => i + 1);
+
+  return (
+    <div className="w-32 h-32 bg-gray-900 bg-opacity-75 backdrop-blur-sm border border-cyan-500/50 rounded-full flex items-center justify-center shadow-lg">
+      <div className="relative w-full h-full">
+        {/* Numbers */}
+        {numbers.map((num) => {
+          const angle = (num * 30 * Math.PI) / 180;
+          const x = 50 + 40 * Math.cos(angle - Math.PI / 2);
+          const y = 50 + 40 * Math.sin(angle - Math.PI / 2);
+          return (
+            <div
+              key={num}
+              className="absolute text-sm font-bold text-cyan-200"
+              style={{
+                left: `${x}%`,
+                top: `${y}%`,
+                transform: "translate(-50%, -50%)",
+              }}
+            >
+              {num}
+            </div>
+          );
+        })}
+        {/* Hour Hand */}
+        <div
+          className="absolute top-1/2 left-1/2 w-1 h-8 bg-cyan-300 rounded-full"
+          style={{
+            transform: `translate(-50%, -100%) rotate(${hourHandAngle}deg)`,
+            transformOrigin: "bottom",
+          }}
+        ></div>
+        {/* Minute Hand */}
+        <div
+          className="absolute top-1/2 left-1/2 w-0.5 h-12 bg-cyan-400 rounded-full"
+          style={{
+            transform: `translate(-50%, -100%) rotate(${minuteHandAngle}deg)`,
+            transformOrigin: "bottom",
+          }}
+        ></div>
+        {/* Second Hand */}
+        <div
+          className="absolute top-1/2 left-1/2 w-0.5 h-14 bg-red-500 rounded-full"
+          style={{
+            transform: `translate(-50%, -100%) rotate(${secondHandAngle}deg)`,
+            transformOrigin: "bottom",
+          }}
+        ></div>
+        {/* Center dot */}
+        <div className="absolute top-1/2 left-1/2 w-2 h-2 bg-white rounded-full transform -translate-x-1/2 -translate-y-1/2"></div>
+        {/* AM/PM Indicator */}
+        <div className="absolute bottom-7 left-1/2 transform -translate-x-1/2 text-xs font-bold text-cyan-300">
+          {time.getHours() >= 12 ? "PM" : "AM"}
+        </div>
+        {/* AM/PM Indicator */}
+        <div className="absolute bottom-7 left-1/2 transform -translate-x-1/2 text-xs font-bold text-cyan-300">
+          {time.getHours() >= 12 ? "PM" : "AM"}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload; // Get the data object for the hovered point
+    return (
+      <div className="p-2 bg-gray-800 bg-opacity-90 border border-gray-700 rounded-md shadow-lg text-white text-xs">
+        <p className="font-bold mb-1">{`Date: ${label}`}</p>
+        <p>{`Total Outbound: ${data.totalOutbound}`}</p>
+        <p>{`Reminder Outbound: ${data.reminderOutbound}`}</p>
+        <p>{`Reminder Inbound: ${data.reminderInbound}`}</p>
+        <p>{`PP/Web: ${data.reminderPPWeb}`}</p>
+        <p>{`Sales Past Due: ${data.salesPastDue}`}</p>
+        <p>{`CRT Past Due: ${data.crtDialerPastDue}`}</p>
+      </div>
+    );
+  }
+  return null;
+};
+
+const MountainGraph = () => {
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(endDate.getDate() - 14); // Fetch last 6 days (current day + 9 previous days)
+
+      const formatDate = (d: Date) => d.toISOString().slice(0, 15);
+
+      try {
+        const res = await fetch(
+          `/proxy/past-records-range?startDate=${formatDate(
+            startDate
+          )}&endDate=${formatDate(endDate)}`
+        );
+        const apiResponse = await res.json();
+
+        let recordsArray = [];
+        if (Array.isArray(apiResponse)) {
+          recordsArray = apiResponse;
+        } else if (apiResponse && Array.isArray((apiResponse as any).data)) {
+          recordsArray = (apiResponse as any).data;
+        }
+
+        const processedRecords = recordsArray
+          .filter(
+            (record) =>
+              record.statusCode === 200 && typeof record.body === "object"
+          )
+          .map((record) => {
+            const body = record.body;
+            return {
+              originalDate: record.date, // Keep original date for sorting
+              date: new Date(record.date).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              }),
+              totalOutbound: body.outbound_records || 0,
+              reminderOutbound: body.outbound_records || 0,
+              reminderInbound: body.inbound_records || 0,
+              reminderPPWeb: body.PP_records || 0,
+              salesPastDue: body.past_due_count || 0,
+              crtDialerPastDue: body.CRT_past_due_count || 0,
+            };
+          })
+          .sort(
+            (a, b) =>
+              new Date(a.originalDate).getTime() -
+              new Date(b.originalDate).getTime()
+          ); // Sort by original date
+
+        setData(processedRecords);
+      } catch (error) {
+        console.error("Error fetching data for mountain graph", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <LoaderCircle className="animate-spin text-cyan-400" size={48} />
+      </div>
+    );
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <AreaChart
+        data={data}
+        margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+      >
+        <defs>
+          <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
+            <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <XAxis
+          dataKey="date"
+          stroke="#e2e8f0"
+          tick={{ fontSize: 10 }}
+          tickCount={15}
+        />
+        <YAxis stroke="#e2e8f0" tick={{ fontSize: 10 }} tickCount={10} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#4b5563" />
+        <Tooltip content={<CustomTooltip />} />
+        <Area
+          type="monotone"
+          dataKey="totalOutbound"
+          stroke="#8884d8"
+          fillOpacity={1}
+          fill="url(#colorUv)"
+          className="animate-pulse-line"
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+};
 
 export function HomePage() {
   const [schedulerStats, setSchedulerStats] = useState<SchedulerStats>({
@@ -42,12 +243,14 @@ export function HomePage() {
   });
   const [currentTime, setCurrentTime] = useState(new Date());
   const [schedulerData, setSchedulerData] = useState<AWSSchedulerItem[]>([]);
-  // State for today's and previous day's records
   const [todaysRecord, setTodaysRecord] = useState<DialerRecord | null>(null);
   const [prevRecord, setPrevRecord] = useState<DialerRecord | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [isDialerLoading, setIsDialerLoading] = useState<boolean>(true); // <-- Add loading state for dialer records
+  const [isDialerLoading, setIsDialerLoading] = useState<boolean>(true);
+  const [showAnalogClock, setShowAnalogClock] = useState(false);
+  const [clockPosition, setClockPosition] = useState({ x: 0, y: 0 });
+  const [hoveredTimezone, setHoveredTimezone] = useState<number | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -82,7 +285,6 @@ export function HomePage() {
     fetchData();
   }, []);
 
-  // Fetch today's and previous day's dialer records
   useEffect(() => {
     setIsDialerLoading(true);
     fetchTodaysDialerRecords()
@@ -97,7 +299,6 @@ export function HomePage() {
       .finally(() => setIsDialerLoading(false));
   }, []);
 
-  // Helper for glowing arrow and percent (reuse but with less glow and animation)
   const getGlowingArrow = (current: number, prev: number) => {
     if (prev === undefined || prev === 0)
       return <span className="ml-2 text-xs text-gray-400">0.0%</span>;
@@ -166,7 +367,17 @@ export function HomePage() {
     });
   };
 
-  // Gradient animation CSS
+  const handleMouseMove = (e: React.MouseEvent, offset: number) => {
+    setShowAnalogClock(true);
+    setClockPosition({ x: e.clientX + 20, y: e.clientY + 20 });
+    setHoveredTimezone(offset);
+  };
+
+  const handleMouseLeave = () => {
+    setShowAnalogClock(false);
+    setHoveredTimezone(null);
+  };
+
   useEffect(() => {
     const style = document.createElement("style");
     style.innerHTML = `
@@ -178,7 +389,7 @@ export function HomePage() {
       .glass-card {
         background: rgba(255,255,255,0.07);
         backdrop-filter: blur(10px);
-        border-radius: 16px;
+        border-radius: 14px;
         box-shadow: 0 2px 16px 0 rgba(37,99,235,0.08);
       }
       .clock-card {
@@ -227,7 +438,7 @@ export function HomePage() {
   }, []);
 
   return (
-    <div className="h-full w-full gradient-bg transition-all duration-700">
+    <div className="h-full w-full gradient-bg transition-all duration-700 mt-[-1rem]">
       <style>
         {`
           @keyframes arrow-zoom {
@@ -236,12 +447,12 @@ export function HomePage() {
           }
         `}
       </style>
-      <div className="h-full w-full p-4 space-y-4">
+      <div className="h-full w-full p-4 space-y-3 overflow-y-auto">
         {/* Welcome Section */}
-        <div className="glass-card p-4 rounded-2xl shadow flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="glass-card p-3 rounded-2xl shadow flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex-1 text-center md:text-left">
             <h1 className="text-[2.5rem] md:text-2xl font-bold text-white mb-1">
-              Welcome to Genesys Cloud Health Check Dashboard
+              Welcome to Genesys Monitoring Dashboard
             </h1>
             <p className="text-base text-blue-100 mb-2">
               Monitor and manage your Genesys Cloud infrastructure with
@@ -249,21 +460,33 @@ export function HomePage() {
             </p>
             <div className="flex gap-2 flex-wrap justify-center md:justify-start">
               {/* Modern Clocks */}
-              <div className="clock-card flex items-center gap-2 px-3 py-2 mb-1">
+              <div
+                className="clock-card flex items-center gap-2 px-3 py-2 mb-1"
+                onMouseMove={(e) => handleMouseMove(e, 0)}
+                onMouseLeave={handleMouseLeave}
+              >
                 <Clock className="w-5 h-5 text-yellow-300" />
                 <span className="font-mono text-sm">
                   🇮🇳 IST: {formatTime12Hour(currentTime, 0)}
                 </span>
               </div>
 
-              <div className="clock-card flex items-center gap-2 px-3 py-2 mb-1">
+              <div
+                className="clock-card flex items-center gap-2 px-3 py-2 mb-1"
+                onMouseMove={(e) => handleMouseMove(e, 2.5)}
+                onMouseLeave={handleMouseLeave}
+              >
                 <Clock className="w-5 h-5 text-green-300" />
                 <span className="font-mono text-sm">
                   🇵🇭 PHST: {formatTime12Hour(currentTime, 2.5)}
                 </span>
               </div>
 
-              <div className="clock-card flex items-center gap-2 px-3 py-2 mb-1">
+              <div
+                className="clock-card flex items-center gap-2 px-3 py-2 mb-1"
+                onMouseMove={(e) => handleMouseMove(e, -9.5)}
+                onMouseLeave={handleMouseLeave}
+              >
                 <Clock className="w-5 h-5 text-cyan-300" />
                 <span className="font-mono text-sm">
                   🇺🇸 EST: {formatTime12Hour(currentTime, -9.5)}
@@ -271,147 +494,178 @@ export function HomePage() {
               </div>
             </div>
           </div>
+          {/* ServiceNow Incidents Chart */}
+          <ServiceNowIncidentsChart />
           {/* AWS Scheduler Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <SummaryCard
-              icon={<BarChart2 className="w-6 h-6 text-cyan-500 neon-cyan" />}
+              icon={<BarChart2 className="w-5 h-5 text-cyan-500 neon-cyan" />}
               label="Total"
               value={schedulerStats.total}
-              color="bg-white/10"
+              color="bg-gray-700"
             />
             <SummaryCard
               icon={
-                <CheckCircle2 className="w-6 h-6 text-emerald-500 neon-emerald" />
+                <CheckCircle2 className="w-5 h-5 text-emerald-500 neon-emerald" />
               }
               label="Enabled"
               value={schedulerStats.enabled}
-              color="bg-white/10"
+              color="bg-gray-700"
             />
             <SummaryCard
-              icon={<XCircle className="w-6 h-6 text-red-500 neon-red" />}
+              icon={<XCircle className="w-5 h-5 text-red-500 neon-red" />}
               label="Disabled"
               value={schedulerStats.disabled}
-              color="bg-white/10"
+              color="bg-gray-700"
             />
             <SummaryCard
               icon={
-                <ListChecks className="w-6 h-6 text-yellow-500 neon-yellow" />
+                <ListChecks className="w-5 h-5 text-yellow-500 neon-yellow" />
               }
               label="Enabled %"
               value={`${schedulerStats.percentEnabled}%`}
-              color="bg-white/10"
+              color="bg-gray-700"
             />
           </div>
         </div>
 
-        {/* Today's Dialer Records */}
-        <div className="glass-card p-3 rounded-lg shadow-md border border-cyan-400/30 mt-4 max-h-[400px] overflow-y-auto">
-          <div className="w-full md:w-5/6 mx-auto">
-            <div className="flex items-center gap-2 mb-2">
-              <Database className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              <h2 className="text-lg font-semibold text-white">
-                Today's Dialer Records ({formatDate(currentTime)})
-              </h2>
-              {isDialerLoading && (
-                <LoaderCircle className="animate-spin ml-2 text-blue-400" />
-              )}
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b border-blue-200">
-                    <th className="text-left py-2 px-1 font-semibold text-blue-100 text-sm">
-                      Category
-                    </th>
-                    <th className="text-right py-2 px-1 font-semibold text-blue-100 text-sm">
-                      Count
-                    </th>
-                    <th className="text-right py-2 px-1 font-semibold text-blue-100 text-sm">
-                      Change
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {isDialerLoading ? (
-                    <tr>
-                      <td
-                        colSpan={3}
-                        className="py-8 text-center text-blue-200"
-                      >
-                        <LoaderCircle className="animate-spin inline w-6 h-6 mr-2 text-blue-400" />
-                        Loading today's dialer records...
-                      </td>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Today's Dialer Records */}
+          <div className="glass-card p-3 rounded-lg shadow-md border border-cyan-400/30 max-h-[400px] overflow-y-auto">
+            <div className="w-full md:w-5/6 mx-auto">
+              <div className="flex items-center gap-2 mb-2">
+                <Database className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <h2 className="text-sm font-semibold text-white">
+                  Today's Dialer Records ({formatDate(currentTime)})
+                </h2>
+                {isDialerLoading && (
+                  <LoaderCircle className="animate-spin ml-2 text-blue-400" />
+                )}
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="border-b border-blue-200">
+                      <th className="text-left py-2 px-1 font-semibold text-blue-100 text-sm">
+                        Category
+                      </th>
+                      <th className="text-right py-2 px-1 font-semibold text-blue-100 text-sm">
+                        Count
+                      </th>
+                      <th className="text-right py-2 px-1 font-semibold text-blue-100 text-sm">
+                        Change
+                      </th>
                     </tr>
-                  ) : todaysRecord && Object.keys(todaysRecord).length > 0 ? (
-                    [
-                      {
-                        label: "Total Outbound Campaign Records",
-                        value: todaysRecord.totalOutbound,
-                        prev: prevRecord?.totalOutbound,
-                      },
-                      {
-                        label: "Reminder Outbound Records",
-                        value: todaysRecord.reminderOutbound,
-                        prev: prevRecord?.reminderOutbound,
-                      },
-                      {
-                        label: "Reminder Inbound Records",
-                        value: todaysRecord.reminderInbound,
-                        prev: prevRecord?.reminderInbound,
-                      },
-                      {
-                        label: "Reminder PP/Web Records",
-                        value: todaysRecord.reminderPPWeb,
-                        prev: prevRecord?.reminderPPWeb,
-                      },
-                      {
-                        label: "Sales Past Due Records",
-                        value: todaysRecord.salesPastDue,
-                        prev: prevRecord?.salesPastDue,
-                      },
-                      {
-                        label: "CRT Dialer Past Due Records",
-                        value: todaysRecord.crtDialerPastDue,
-                        prev: prevRecord?.crtDialerPastDue,
-                      },
-                    ].map((row, idx) => (
-                      <tr
-                        key={row.label}
-                        className="border-b border-blue-200 hover:bg-blue-900/10 transition-colors"
-                      >
-                        <td className="py-2 px-1 text-sm text-blue-50 whitespace-nowrap">
-                          {row.label}
-                        </td>
-                        <td className="py-2 px-1 text-right font-mono font-semibold text-base text-blue-50">
-                          {row.value?.toLocaleString?.() ?? "0"}
-                        </td>
-                        <td className="py-2 px-1 text-right">
-                          {prevRecord && row.prev !== undefined ? (
-                            getGlowingArrow(row.value, row.prev)
-                          ) : (
-                            <span className="text-xs text-gray-400">0.0%</span>
-                          )}
+                  </thead>
+                  <tbody>
+                    {isDialerLoading ? (
+                      <tr>
+                        <td
+                          colSpan={3}
+                          className="py-8 text-center text-blue-200"
+                        >
+                          <LoaderCircle className="animate-spin inline w-6 h-6 mr-2 text-blue-400" />
+                          Loading today's dialer records...
                         </td>
                       </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={3} className="py-8 text-center text-red-300">
-                        No dialer records found for today.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    ) : todaysRecord && Object.keys(todaysRecord).length > 0 ? (
+                      [
+                        {
+                          label: "Total Outbound Campaign Records",
+                          value: todaysRecord.totalOutbound,
+                          prev: prevRecord?.totalOutbound,
+                        },
+                        {
+                          label: "Reminder Outbound Records",
+                          value: todaysRecord.reminderOutbound,
+                          prev: prevRecord?.reminderOutbound,
+                        },
+                        {
+                          label: "Reminder Inbound Records",
+                          value: todaysRecord.reminderInbound,
+                          prev: prevRecord?.reminderInbound,
+                        },
+                        {
+                          label: "Reminder PP/Web Records",
+                          value: todaysRecord.reminderPPWeb,
+                          prev: prevRecord?.reminderPPWeb,
+                        },
+                        {
+                          label: "Sales Past Due Records",
+                          value: todaysRecord.salesPastDue,
+                          prev: prevRecord?.salesPastDue,
+                        },
+                        {
+                          label: "CRT Dialer Past Due Records",
+                          value: todaysRecord.crtDialerPastDue,
+                          prev: prevRecord?.crtDialerPastDue,
+                        },
+                      ].map((row, idx) => (
+                        <tr
+                          key={row.label}
+                          className="border-b border-blue-200 hover:bg-blue-900/10 transition-colors"
+                        >
+                          <td className="py-2 px-1 text-sm text-blue-50 whitespace-nowrap">
+                            {row.label}
+                          </td>
+                          <td className="py-2 px-1 text-right font-mono font-semibold text-base text-blue-50">
+                            {row.value?.toLocaleString?.() ?? "0"}
+                          </td>
+                          <td className="py-2 px-1 text-right">
+                            {prevRecord && row.prev !== undefined ? (
+                              getGlowingArrow(row.value, row.prev)
+                            ) : (
+                              <span className="text-xs text-gray-400">
+                                0.0%
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={3}
+                          className="py-8 text-center text-red-300"
+                        >
+                          No dialer records found for today.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
+          </div>
+
+          {/* Mountain Graph */}
+          <div className="glass-card p-3 rounded-lg shadow-md border border-cyan-400/30">
+            <h2 className="text-sm font-semibold text-white mb-2">
+              Last 6 Days Dialer Records Trend
+            </h2>
+            <MountainGraph />
           </div>
         </div>
       </div>
+      {showAnalogClock && hoveredTimezone !== null && (
+        <div
+          className="fixed z-50"
+          style={{
+            left: clockPosition.x,
+            top: clockPosition.y,
+          }}
+        >
+          <AnalogClock
+            time={
+              new Date(currentTime.getTime() + hoveredTimezone * 60 * 60 * 1000)
+            }
+          />
+        </div>
+      )}
     </div>
   );
 }
 
-// Summary Card Component
 function SummaryCard({
   icon,
   label,
@@ -425,8 +679,8 @@ function SummaryCard({
 }) {
   return (
     <div
-      className={`glass-card flex flex-col items-center justify-center p-3 rounded-xl shadow border border-white/10 ${color}`}
-      style={{ minHeight: "70px", minWidth: "90px" }}
+      className={`flex flex-col items-center justify-center p-1 rounded-xl shadow border border-white/10 ${color}`}
+      style={{ minHeight: "60px", minWidth: "80px" }}
     >
       <div className="mb-1">{icon}</div>
       <div className="text-base font-bold text-white">{value}</div>

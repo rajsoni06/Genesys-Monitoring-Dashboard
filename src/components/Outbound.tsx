@@ -297,7 +297,7 @@ const Outbound = () => {
         (fromId === "siebel" && toId === "siebel-crm-sync") ||
         (fromId === "siebel-crm-sync" && toId === "siebel")
       ) {
-        controlY = (from.y + to.y) / 2 + 40;
+        controlY = (from.y + to.y) / 2 + 39;
       } else {
         controlY = from.y < to.y ? from.y + 30 : from.y - 30;
       }
@@ -324,7 +324,7 @@ const Outbound = () => {
   const getPulseOffset = (index: number) => (pulsePhase + index * 10) % 60;
 
   return (
-    <div className="mt-[-1rem] p-4 font-sans bg-slate-900 text-white">
+    <div className="mt-[0.1rem] p-4 font-sans bg-slate-900 text-white">
       <div className="flex flex-col items-center mb-1">
         <h1 className="text-xl font-bold text-white">
           Outbound Call Flow Architecture
@@ -548,7 +548,9 @@ const Outbound = () => {
               {hoveredNode === node.id && (
                 <div
                   className={`absolute z-50 w-48 p-2 text-xs bg-slate-950 border border-cyan-500/50 rounded-md shadow-lg ${
-                    ["aws-sftp", "lambda-mdt"].includes(node.id)
+                    ["aws-sftp", "lambda-mdt", "siebel-crm-sync"].includes(
+                      node.id
+                    )
                       ? "bottom-full mb-2 left-1/2 transform -translate-x-1/2"
                       : ["siebel", "tibco"].includes(node.id)
                       ? "top-full mt-2 left-1/2 transform -translate-x-1/2"
