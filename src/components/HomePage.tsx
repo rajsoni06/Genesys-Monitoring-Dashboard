@@ -11,7 +11,7 @@ import {
   LoaderCircle,
 } from "lucide-react";
 import { fetchSchedulerData } from "@/lib/fetchSchedulerData";
-import { fetchTodaysDialerRecords, DialerRecord } from "./PastRecords";
+import { fetchTodaysDialerRecords, DialerRecord } from "@/lib/dialerRecords";
 import ServiceNowIncidentsChart from "./ServiceNowIncidentsChart";
 import {
   AreaChart,
@@ -301,7 +301,7 @@ export function HomePage() {
 
   const getGlowingArrow = (current: number, prev: number) => {
     if (prev === undefined || prev === 0)
-      return <span className="ml-2 text-xs text-gray-400">0.0%</span>;
+      return <span className="ml-2 text-xs text-gray-500">0.0%</span>;
     const change = ((current - prev) / prev) * 100;
     if (change > 0) {
       return (
@@ -438,7 +438,7 @@ export function HomePage() {
   }, []);
 
   return (
-    <div className="h-full w-full gradient-bg transition-all duration-700 mt-[-1rem]">
+    <div className="h-full w-full gradient-bg transition-all duration-700 mt-[-1.2rem]">
       <style>
         {`
           @keyframes arrow-zoom {
@@ -447,49 +447,49 @@ export function HomePage() {
           }
         `}
       </style>
-      <div className="h-full w-full p-4 space-y-3 overflow-y-auto">
+      <div className="h-full w-full p-2 space-y-2 overflow-y-auto">
         {/* Welcome Section */}
-        <div className="glass-card p-3 rounded-2xl shadow flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="glass-card p-2 rounded-2xl shadow flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex-1 text-center md:text-left">
-            <h1 className="text-[2.5rem] md:text-2xl font-bold text-white mb-1">
+            <h1 className="text-[1.5rem] md:text-[1.3rem] font-bold text-white mb-1">
               Welcome to Genesys Monitoring Dashboard
             </h1>
-            <p className="text-base text-blue-100 mb-2">
+            <p className="text-[0.82rem] text-blue-100 mb-2">
               Monitor and manage your Genesys Cloud infrastructure with
               real-time insights
             </p>
             <div className="flex gap-2 flex-wrap justify-center md:justify-start">
               {/* Modern Clocks */}
               <div
-                className="clock-card flex items-center gap-2 px-3 py-2 mb-1"
+                className="clock-card flex items-center gap-2 px-2 py-2 mb-1"
                 onMouseMove={(e) => handleMouseMove(e, 0)}
                 onMouseLeave={handleMouseLeave}
               >
-                <Clock className="w-5 h-5 text-yellow-300" />
-                <span className="font-mono text-sm">
-                  🇮🇳 IST: {formatTime12Hour(currentTime, 0)}
+                <Clock className="w-4 h-4 text-yellow-300" />
+                <span className="font-mono text-xs">
+                  IST: {formatTime12Hour(currentTime, 0)}
                 </span>
               </div>
 
               <div
-                className="clock-card flex items-center gap-2 px-3 py-2 mb-1"
+                className="clock-card flex items-center gap-2 px-2 py-2 mb-1"
                 onMouseMove={(e) => handleMouseMove(e, 2.5)}
                 onMouseLeave={handleMouseLeave}
               >
-                <Clock className="w-5 h-5 text-green-300" />
-                <span className="font-mono text-sm">
-                  🇵🇭 PHST: {formatTime12Hour(currentTime, 2.5)}
+                <Clock className="w-4 h-4 text-green-300" />
+                <span className="font-mono text-xs">
+                  PHST: {formatTime12Hour(currentTime, 2.5)}
                 </span>
               </div>
 
               <div
-                className="clock-card flex items-center gap-2 px-3 py-2 mb-1"
+                className="clock-card flex items-center gap-2 px-2 py-2 mb-1"
                 onMouseMove={(e) => handleMouseMove(e, -9.5)}
                 onMouseLeave={handleMouseLeave}
               >
-                <Clock className="w-5 h-5 text-cyan-300" />
-                <span className="font-mono text-sm">
-                  🇺🇸 EST: {formatTime12Hour(currentTime, -9.5)}
+                <Clock className="w-4 h-4 text-cyan-300" />
+                <span className="font-mono text-xs">
+                  EST: {formatTime12Hour(currentTime, -9.5)}
                 </span>
               </div>
             </div>
@@ -529,9 +529,9 @@ export function HomePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
           {/* Today's Dialer Records */}
-          <div className="glass-card p-3 rounded-lg shadow-md border border-cyan-400/30 max-h-[400px] overflow-y-auto">
+          <div className="glass-card p-2 rounded-lg shadow-md border border-cyan-400/30 max-h-[400px] overflow-y-auto">
             <div className="w-full md:w-5/6 mx-auto">
               <div className="flex items-center gap-2 mb-2">
                 <Database className="w-5 h-5 text-blue-600 dark:text-blue-400" />
@@ -639,8 +639,8 @@ export function HomePage() {
           </div>
 
           {/* Mountain Graph */}
-          <div className="glass-card p-3 rounded-lg shadow-md border border-cyan-400/30">
-            <h2 className="text-sm font-semibold text-white mb-2">
+          <div className="glass-card p-2 rounded-lg shadow-md border border-cyan-400/30">
+            <h2 className="text-sm font-semibold text-white mb-1">
               Last 6 Days Dialer Records Trend
             </h2>
             <MountainGraph />
@@ -680,11 +680,17 @@ function SummaryCard({
   return (
     <div
       className={`flex flex-col items-center justify-center p-1 rounded-xl shadow border border-white/10 ${color}`}
-      style={{ minHeight: "60px", minWidth: "80px" }}
+      style={{
+        minHeight: "60px",
+        minWidth: "80px",
+        margin: "1px", // reduce spacing between boxes
+      }}
     >
-      <div className="mb-1">{icon}</div>
-      <div className="text-base font-bold text-white">{value}</div>
-      <div className="text-xs text-white">{label}</div>
+      <div className="mb-0.5">{icon}</div>
+      <div className="text-base font-bold text-white leading-tight">
+        {value}
+      </div>
+      <div className="text-xs text-white leading-tight">{label}</div>
     </div>
   );
 }

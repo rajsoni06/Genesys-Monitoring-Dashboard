@@ -12,13 +12,11 @@ const ServiceNowIncidentsChart: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        // Assuming a proxy endpoint for ServiceNow incidents
         const response = await fetch("/proxy/servicenow-incidents");
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        // Assuming the API returns an object like { count: number }
         if (typeof data.count === "number") {
           setIncidentCount(data.count);
         } else {
@@ -29,7 +27,7 @@ const ServiceNowIncidentsChart: React.FC = () => {
       } catch (err) {
         console.error("Error fetching ServiceNow incidents:", err);
         setError((err as Error).message || "Failed to fetch incident data");
-        setIncidentCount(0); // Default to 0 incidents on error
+        setIncidentCount(0);
       } finally {
         setLoading(false);
       }
@@ -39,26 +37,26 @@ const ServiceNowIncidentsChart: React.FC = () => {
   }, []);
 
   const getChartProps = (count: number | null) => {
-    let color = "#4CAF50"; // Green for 0 incidents
+    let color = "#4CAF50";
     let text = "No Incidents";
 
     if (count === null || loading) {
-      color = "#607D8B"; // Grey for loading/error
+      color = "#607D8B";
       text = "Loading...";
     } else if (count === 1) {
-      color = "#FFEB3B"; // Light Yellow for 1
+      color = "#FFEB3B";
       text = "1";
     } else if (count === 2) {
-      color = "#FFC107"; // Yellow for 2
+      color = "#FFC107";
       text = "2";
     } else if (count === 3) {
-      color = "#FF9800"; // Light Orange for 3
+      color = "#FF9800";
       text = "3";
     } else if (count === 4) {
-      color = "#FF5722"; // Orange for 4
+      color = "#FF5722";
       text = "4";
     } else if (count >= 5) {
-      color = "#F44336"; // Red for 5+
+      color = "#F44336";
       text = `${count}`;
     }
 
@@ -69,45 +67,59 @@ const ServiceNowIncidentsChart: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="bg-gray-700 p-4 rounded-2xl shadow flex flex-col items-center justify-center h-40">
-        <LoaderCircle className="animate-spin text-cyan-400" size={32} />
-        <p className="text-white text-sm mt-2">Loading incidents...</p>
+      <div className="bg-gray-800/40 backdrop-blur-xl p-3 rounded-2xl shadow-2xl flex flex-col items-center justify-center h-36 border border-cyan-400/30 animate-pulse">
+        <LoaderCircle
+          className="animate-spin text-cyan-400 drop-shadow-lg"
+          size={36}
+        />
+        <p className="text-cyan-200 text-sm mt-3 font-medium">
+          Loading incidents...
+        </p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-gray-700 p-4 rounded-2xl shadow flex flex-col items-center justify-center h-40 text-red-400">
-        <XCircle size={32} />
-        <p className="text-sm mt-2">Error: {error}</p>
-        <p className="text-xs">Displaying 0 incidents.</p>
+      <div className="bg-gray-800/40 backdrop-blur-xl p-3 rounded-2xl shadow-2xl flex flex-col items-center justify-center h-36 border border-red-400/30">
+        <XCircle className="text-red-400 drop-shadow-lg" size={36} />
+        <p className="text-sm mt-2 text-red-300 font-semibold">
+          Error: {error}
+        </p>
+        <p className="text-xs text-gray-300">Displaying 0 incidents.</p>
       </div>
     );
   }
 
-  const data = [{ name: "Incidents", value: 1 }]; // Single slice for the whole circle
+  const data = [{ name: "Incidents", value: 1 }];
 
   return (
-    <div className="bg-gray-700 p-4 rounded-2xl shadow flex flex-col items-center justify-center h-40">
-      <h2 className="text-lg font-semibold text-white mb-2">
+    <div className="relative bg-gray-800/40 backdrop-blur-xl p-3 rounded-3xl shadow-2xl flex flex-col items-center justify-center h-44 border border-cyan-400/20 overflow-hidden">
+      {/* Animated Glow Border */}
+      <div className="absolute inset-0 rounded-3xl border-2 border-transparent bg-gradient-to-r from-cyan-500 to-purple-600 animate-[spin_6s_linear_infinite] opacity-30 blur-xl"></div>
+
+      <h2 className="text-lg font-bold text-white mb-3 tracking-wide drop-shadow-md">
         ServiceNow Incidents
       </h2>
-      <ResponsiveContainer width="100%" height={100}>
+
+      <ResponsiveContainer width="100%" height={80}>
         <PieChart>
           <Pie
             data={data}
             cx="50%"
             cy="50%"
-            innerRadius={30}
-            outerRadius={40}
+            innerRadius={25}
+            outerRadius={35}
             fill="#8884d8"
-            paddingAngle={0}
             dataKey="value"
-            isAnimationActive={false}
+            isAnimationActive={true}
           >
-            {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={color} />
+            {data.map((_, index) => (
+              <Cell
+                key={`cell-${index}`}
+                fill={color}
+                className="drop-shadow-[0_0_12px_rgba(0,0,0,0.6)]"
+              />
             ))}
           </Pie>
           <text
@@ -115,7 +127,8 @@ const ServiceNowIncidentsChart: React.FC = () => {
             y="50%"
             textAnchor="middle"
             dominantBaseline="middle"
-            className="text-white font-bold text-lg"
+            fontSize="20"
+            fontWeight="700"
             fill="#fff"
           >
             {text}

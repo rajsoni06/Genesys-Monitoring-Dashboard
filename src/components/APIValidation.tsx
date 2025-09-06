@@ -24,17 +24,18 @@ export function APIValidation() {
   } | null>(null);
   const [showJson, setShowJson] = useState<boolean>(false);
   const [agentDetails, setAgentDetails] = useState<{ [key: string]: any }>({});
-  const [agentDetailsLoading, setAgentDetailsLoading] = useState<{ [key: string]: boolean }>({});
-  const [agentDetailsError, setAgentDetailsError] = useState<{ [key: string]: string | null }>({});
-  const [agentDetailsStatus, setAgentDetailsStatus] = useState<{ [key: string]: number | null }>({});
+  const [agentDetailsLoading, setAgentDetailsLoading] = useState<{
+    [key: string]: boolean;
+  }>({});
+  const [agentDetailsError, setAgentDetailsError] = useState<{
+    [key: string]: string | null;
+  }>({});
+  const [agentDetailsStatus, setAgentDetailsStatus] = useState<{
+    [key: string]: number | null;
+  }>({});
   const testCof = "9269653";
 
   const apiEndpoints = [
-    {
-      name: "Get_Token",
-      url: "https://apps.usw2.pure.cloud/directory/#/admin/integrations/actions/custom_-_59f20d6d-1744-4dc4-8094-fdb093f2a234/summary",
-      status: "success",
-    },
     {
       name: "Sales_GetCustomerbyCOF",
       url: "/proxy/sales-get-customer-by-cof",
@@ -46,6 +47,11 @@ export function APIValidation() {
       url: "/proxy/sales-get-customer-by-cof",
       status: "success",
       requiresInput: true,
+    },
+    {
+      name: "Get_Token",
+      url: "https://apps.usw2.pure.cloud/directory/#/admin/integrations/actions/custom_-_59f20d6d-1744-4dc4-8094-fdb093f2a234/summary",
+      status: "success",
     },
   ];
 
@@ -76,44 +82,57 @@ export function APIValidation() {
     }
   };
 
-  const fetchAgentDetails = useCallback(async (cof: string, endpointName: string) => {
-    if (!cof.trim()) return;
+  const fetchAgentDetails = useCallback(
+    async (cof: string, endpointName: string) => {
+      if (!cof.trim()) return;
 
-    setAgentDetailsLoading(prev => ({ ...prev, [endpointName]: true }));
-    setAgentDetailsError(prev => ({ ...prev, [endpointName]: null }));
-    setAgentDetails(prev => ({ ...prev, [endpointName]: null }));
-    setAgentDetailsStatus(prev => ({ ...prev, [endpointName]: null }));
+      setAgentDetailsLoading((prev) => ({ ...prev, [endpointName]: true }));
+      setAgentDetailsError((prev) => ({ ...prev, [endpointName]: null }));
+      setAgentDetails((prev) => ({ ...prev, [endpointName]: null }));
+      setAgentDetailsStatus((prev) => ({ ...prev, [endpointName]: null }));
 
-    try {
-      const response = await fetch("/proxy/sales-get-customer-by-cof", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cof }),
-      });
+      try {
+        const response = await fetch("/proxy/sales-get-customer-by-cof", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ cof }),
+        });
 
-      setAgentDetailsStatus(prev => ({ ...prev, [endpointName]: response.status }));
+        setAgentDetailsStatus((prev) => ({
+          ...prev,
+          [endpointName]: response.status,
+        }));
 
-      if (!response.ok) {
-        let errMsg = "Agent details not found";
-        try {
-          const errJson = await response.json();
-          setAgentDetails(prev => ({ ...prev, [endpointName]: errJson }));
-          errMsg = errJson.error || errJson.message || JSON.stringify(errJson);
-        } catch {
-          // ignore
+        if (!response.ok) {
+          let errMsg = "Agent details not found";
+          try {
+            const errJson = await response.json();
+            setAgentDetails((prev) => ({ ...prev, [endpointName]: errJson }));
+            errMsg =
+              errJson.error || errJson.message || JSON.stringify(errJson);
+          } catch {
+            // ignore
+          }
+          setAgentDetailsError((prev) => ({
+            ...prev,
+            [endpointName]: `${errMsg} (HTTP ${response.status})`,
+          }));
+          return;
         }
-        setAgentDetailsError(prev => ({ ...prev, [endpointName]: `${errMsg} (HTTP ${response.status})` }));
-        return;
-      }
 
-      const data = await response.json();
-      setAgentDetails(prev => ({ ...prev, [endpointName]: data }));
-    } catch (err: any) {
-      setAgentDetailsError(prev => ({ ...prev, [endpointName]: err.message }));
-    } finally {
-      setAgentDetailsLoading(prev => ({ ...prev, [endpointName]: false }));
-    }
-  }, []);
+        const data = await response.json();
+        setAgentDetails((prev) => ({ ...prev, [endpointName]: data }));
+      } catch (err: any) {
+        setAgentDetailsError((prev) => ({
+          ...prev,
+          [endpointName]: err.message,
+        }));
+      } finally {
+        setAgentDetailsLoading((prev) => ({ ...prev, [endpointName]: false }));
+      }
+    },
+    []
+  );
 
   const handleAPITest = (endpoint: (typeof apiEndpoints)[0]) => {
     if (endpoint.name === "Get_Token") {
@@ -124,10 +143,7 @@ export function APIValidation() {
     ) {
       const cof = cofInputs[endpoint.name] || "";
       fetchAgentDetails(cof, endpoint.name);
-      setHistory((prev) => [
-        ...prev,
-        `${endpoint.name} test for COF: ${cof}`,
-      ]);
+      setHistory((prev) => [...prev, `${endpoint.name} test for COF: ${cof}`]);
     } else {
       setHistory((prev) => [...prev, endpoint.url]);
       window.open(endpoint.url, "_blank");
@@ -228,12 +244,12 @@ export function APIValidation() {
           </div>
         </div>
         <p className="text-gray-400 text-sm">
-          {endpoint.name === "Get_Token" &&
-            "Retrieve authentication token for API access"}
           {endpoint.name === "Sales_GetCustomerbyCOF" &&
             "Retrieve customer information for sales operations"}
           {endpoint.name === "CRT_COT_GetCustomerBy_COF" &&
             "Retrieve customer information for CRT/COT"}
+          {endpoint.name === "Get_Token" &&
+            "Retrieve authentication token for API access"}
         </p>
         {endpoint.requiresInput && (
           <div className="space-y-2">
@@ -242,7 +258,7 @@ export function APIValidation() {
             </label>
             <input
               type="text"
-              value={cofInputs[endpoint.name] || ''}
+              value={cofInputs[endpoint.name] || ""}
               onChange={(e) => {
                 const newCofInputs = { ...cofInputs };
                 newCofInputs[endpoint.name] = e.target.value;
@@ -379,7 +395,7 @@ export function APIValidation() {
 
   return (
     <div
-      className="p-4 h-full bg-gray-700 overflow-auto"
+      className="p-3 h-full bg-gray-700 overflow-auto mt-[-1rem]"
       style={{
         background:
           "linear-gradient(135deg, #0f172a 0%, #1e293b 100%, #2563eb 100%)",
@@ -387,12 +403,12 @@ export function APIValidation() {
         overflowY: "auto",
       }}
     >
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-3">
         {/* Header */}
         <div className="glassmorphism p-5 rounded-xl shadow-xl border border-cyan-500/20 flex items-center gap-4 mb-2">
           <Shield className="w-9 h-7 text-cyan-400 animate-pulse-slow" />
           <div>
-            <h1 className="text-1xl font-bold font-sans tracking-tight">
+            <h1 className="text-lg font-bold font-sans tracking-tight">
               API Validation Center
             </h1>
             <p className="text-gray-300 text-base">
@@ -403,10 +419,10 @@ export function APIValidation() {
         </div>
 
         {/* API Endpoints */}
-        <div className="max-w-6xl mx-auto space-y-6">
+        <div className="max-w-6xl mx-auto space-y-3">
           {tokenEndpoint && renderEndpointCard(tokenEndpoint)}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
           {otherEndpoints.map((endpoint) => renderEndpointCard(endpoint))}
         </div>
 

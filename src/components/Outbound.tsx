@@ -324,7 +324,7 @@ const Outbound = () => {
   const getPulseOffset = (index: number) => (pulsePhase + index * 10) % 60;
 
   return (
-    <div className="mt-[0.1rem] p-4 font-sans bg-slate-900 text-white">
+    <div className="mt-[-1.2rem] p-4 font-sans bg-slate-900 text-white">
       <div className="flex flex-col items-center mb-1">
         <h1 className="text-xl font-bold text-white">
           Outbound Call Flow Architecture

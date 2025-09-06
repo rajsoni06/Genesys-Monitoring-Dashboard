@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { DialerRecord, APIRecord } from "@/lib/dialerRecords";
 import {
   Calendar,
   Database,
@@ -10,128 +11,6 @@ import {
   RefreshCw,
   X,
 } from "lucide-react";
-
-export interface DialerRecord {
-  date: string;
-  totalOutbound: number;
-  reminderOutbound: number;
-  reminderInbound: number;
-  reminderPPWeb: number;
-  salesPastDue: number;
-  crtDialerPastDue: number;
-}
-
-// Update: fetch both today's and previous day's records
-export async function fetchTodaysDialerRecords(): Promise<{
-  today: DialerRecord | null;
-  previous: DialerRecord | null;
-}> {
-  const today = new Date();
-  const prev = new Date(today);
-  prev.setDate(today.getDate() - 1);
-
-  const year = today.getFullYear();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-  const todayIso = `${year}-${month}-${day}`;
-
-  const prevYear = prev.getFullYear();
-  const prevMonth = String(prev.getMonth() + 1).padStart(2, "0");
-  const prevDay = String(prev.getDate()).padStart(2, "0");
-  const prevIso = `${prevYear}-${prevMonth}-${prevDay}`;
-
-  try {
-    // Fetch both days in one call (if supported)
-    const url = `/proxy/past-records-range?startDate=${prevIso}&endDate=${todayIso}`;
-    const res = await fetch(url);
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error(`HTTP Error fetching records: ${res.status}`, errorText);
-      return { today: null, previous: null };
-    }
-
-    const contentType = res.headers.get("content-type") || "";
-    if (!contentType.includes("application/json")) {
-      console.error(`Expected JSON data, got: '${contentType}' for records`);
-      return { today: null, previous: null };
-    }
-
-    const text = await res.text();
-    let apiResponse: APIRecord[];
-    try {
-      apiResponse = JSON.parse(text);
-    } catch (e) {
-      console.error(
-        `Invalid JSON received for records: ${text.substring(0, 200)}...`,
-        e
-      );
-      return { today: null, previous: null };
-    }
-
-    let recordsArray: APIRecord[] = [];
-    if (Array.isArray(apiResponse)) {
-      recordsArray = apiResponse;
-    } else if (apiResponse && Array.isArray((apiResponse as any).data)) {
-      recordsArray = (apiResponse as any).data;
-    }
-
-    const validRecords = recordsArray
-      .filter(
-        (record) => record.statusCode === 200 && typeof record.body === "object"
-      )
-      .map((record) => {
-        const body = record.body as {
-          sales_record_count: number;
-          outbound_records: number;
-          inbound_records: number;
-          PP_records: number;
-          past_due_count: number;
-          CRT_record_count: number;
-          CRT_past_due_count: number;
-          COT_record_count: number;
-          COT_past_due_count: number;
-        };
-        return {
-          date: record.date,
-          totalOutbound: body.outbound_records || 0,
-          reminderOutbound: body.outbound_records || 0,
-          reminderInbound: body.inbound_records || 0,
-          reminderPPWeb: body.PP_records || 0,
-          salesPastDue: body.past_due_count || 0,
-          crtDialerPastDue: body.CRT_past_due_count || 0,
-        } as DialerRecord;
-      });
-
-    // Find today's and previous day's records by date
-    const todayRecord =
-      validRecords.find((r) => r.date.startsWith(todayIso)) || null;
-    const prevRecord =
-      validRecords.find((r) => r.date.startsWith(prevIso)) || null;
-
-    return { today: todayRecord, previous: prevRecord };
-  } catch (err) {
-    console.error("Error in fetchTodaysDialerRecords:", err);
-    return { today: null, previous: null };
-  }
-}
-
-// Add interface for the actual API response
-export interface APIRecord {
-  statusCode: number;
-  body: {
-    sales_record_count: number;
-    outbound_records: number;
-    inbound_records: number;
-    PP_records: number;
-    past_due_count: number;
-    CRT_record_count: number;
-    CRT_past_due_count: number;
-    COT_record_count: number;
-    COT_past_due_count: number;
-  };
-  date: string;
-}
 
 // Frontend memory cache for API responses
 const cache = new Map<string, { data: DialerRecord[]; timestamp: number }>();
@@ -267,8 +146,8 @@ export function PastRecords() {
         url += `startDate=${startDate}&endDate=${startDate}`; // Fetch for a single day
         console.log(`Fetching records for ${startDate}...`);
       } else {
-        url += `days=19`; // Default to 15 days if no specific range
-        console.log(`Fetching records for last 19 days...`);
+        url += `days=10`; // Default to 10 days if no specific range
+        console.log(`Fetching records for last 10 days...`);
       }
       console.log(`Making request to: ${url}`);
 
@@ -359,7 +238,6 @@ export function PastRecords() {
 
   useEffect(() => {
     setCacheReady(cache.size > 0); // <-- Set cacheReady on mount if cache exists
-    fetchRecords();
 
     // Daily refetch at midnight (server time)
     const now = new Date();
@@ -382,21 +260,37 @@ export function PastRecords() {
     };
   }, []);
 
-  // Filter records based on searchTerm and selectedDate
+  // Handle data fetching based on filters
   useEffect(() => {
-    let filtered = records;
-    if (searchTerm) {
-      const lowerCaseSearchTerm = searchTerm.toLowerCase();
-      filtered = records.filter((record) =>
-        record.date.toLowerCase().includes(lowerCaseSearchTerm)
-      );
-    } else if (selectedDate) {
-      filtered = records.filter((record) =>
-        record.date.startsWith(selectedDate)
-      );
+    if (selectedDate) {
+      // When a date is selected, fetch immediately
+      fetchRecords(selectedDate, selectedDate);
+      return; // Stop further execution in this effect
     }
-    setFilteredRecords(filtered);
-  }, [records, searchTerm, selectedDate]);
+
+    // For search term changes, use a debounce
+    const handler = setTimeout(() => {
+      if (searchTerm && /^\d{4}-\d{2}-\d{2}$/.test(searchTerm)) {
+        // If search term is a valid date, fetch for that date
+        fetchRecords(searchTerm, searchTerm);
+      } else if (!searchTerm) {
+        // If search term is cleared, fetch the default record set (last 10 days)
+        fetchRecords();
+      } else {
+        // If search term is invalid, clear the records to show 'No records found'
+        setRecords([]);
+      }
+    }, 500); // 500ms debounce delay
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchTerm, selectedDate]);
+
+  // This effect ensures that any update to `records` is reflected in `filteredRecords`
+  useEffect(() => {
+    setFilteredRecords(records);
+  }, [records]);
 
   // Calendar helpers
   const daysInMonth = new Date(
@@ -437,7 +331,7 @@ export function PastRecords() {
     );
 
   return (
-    <div className="p-6 h-full bg-gray-900 overflow-auto">
+    <div className="p-4 h-full bg-gray-900 overflow-auto mt-[-1.5rem]">
       <style>
         {`
           @keyframes arrow-zoom {
@@ -446,12 +340,12 @@ export function PastRecords() {
           }
         `}
       </style>
-      <div className="max-w-7xl mx-auto space-y-4">
+      <div className="max-w-7xl mx-auto space-y-2">
         {/* Header */}
-        <div className="glassmorphism p-6 rounded-xl shadow-lg">
-          <div className="flex items-center gap-4 mb-3">
+        <div className="glassmorphism p-4 rounded-xl shadow-lg">
+          <div className="flex items-center gap-3 mb-3">
             <Database className="w-7 h-7 text-cyan-400" />
-            <h1 className="text-2xl font-bold text-white font-mono tracking-wide">
+            <h1 className="text-lg font-bold text-white font-mono tracking-wide">
               Historical Dialer Records
             </h1>
           </div>
@@ -468,7 +362,7 @@ export function PastRecords() {
               <Search className="w-5 h-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search by date (e.g., 2025-01-07)..."
+                placeholder="Search by date (e.g.,06/06/2025)..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="flex-1 bg-transparent text-white placeholder-gray-500 border-none outline-none text-sm"

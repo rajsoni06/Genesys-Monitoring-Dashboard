@@ -59,19 +59,19 @@ export function AWSScheduler({
   const rightData = filteredData.slice(mid);
 
   return (
-    <div className="min-h-screen p-4 font-sans bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#2563eb]">
-      <div className="max-w-6xl mx-auto space-y-4">
+    <div className="min-h-screen p-2 font-sans bg-gradient-to-br from-[#0f172a] via-[#1e293b] to-[#2563eb] mt-[-1rem]">
+      <div className="max-w-6xl mx-auto space-y-3">
         {/* Header */}
-        <div className="glassmorphism p-6 rounded-xl shadow-xl border border-cyan-400/30 mb-2">
-          <div className="flex items-center gap-3 mb-2">
-            <Calendar className="w-7 h-7 text-cyan-400 animate-pulse-slow" />
-            <h1 className="text-xl font-bold tracking-tight text-white">
+        <div className="glassmorphism p-5 rounded-xl shadow-xl border border-cyan-500/20 flex items-center gap-4 mb-2">
+          <Calendar className="w-9 h-7 text-cyan-400 animate-pulse-slow" />
+          <div>
+            <h1 className="text-lg font-bold font-sans tracking-tight">
               AWS Scheduler Dashboard
             </h1>
+            <p className="text-gray-300 text-base">
+              Monitor the real-time status of your AWS scheduler configurations.
+            </p>
           </div>
-          <p className="text-gray-300 text-sm">
-            Monitor the real-time status of your AWS scheduler configurations.
-          </p>
         </div>
 
         {/* Summary Cards */}
