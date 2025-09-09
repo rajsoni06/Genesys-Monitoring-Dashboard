@@ -22,11 +22,11 @@
 }
 
 .drop-shadow-glow-green {
-  filter: drop-shadow(0 0 6px #32ff6a);
+  filter: drop-shadow(0 0 4px rgba(0, 255, 0, 0.6));
 }
 
 .drop-shadow-glow-red {
-  filter: drop-shadow(0 0 6px #ff6a6a);
+  filter: drop-shadow(0 0 4px rgba(255, 0, 0, 0.6));
 }
 
 .animate-pulse-slow {

@@ -1,11 +1,14 @@
 export interface DialerRecord {
   date: string;
-  totalOutbound: number;
+  totalSalesRecords: number;
   reminderOutbound: number;
   reminderInbound: number;
   reminderPPWeb: number;
   salesPastDue: number;
+  crtDialerRecords: number;
   crtDialerPastDue: number;
+  cotDialerRecords: number;
+  cotDialerPastDue: number;
 }
 
 export interface APIRecord {
@@ -109,12 +112,15 @@ export async function fetchTodaysDialerRecords(): Promise<{
         };
         return {
           date: record.date,
-          totalOutbound: body.outbound_records || 0,
+          totalSalesRecords: body.sales_record_count || 0,
           reminderOutbound: body.outbound_records || 0,
           reminderInbound: body.inbound_records || 0,
           reminderPPWeb: body.PP_records || 0,
           salesPastDue: body.past_due_count || 0,
+          crtDialerRecords: body.CRT_record_count || 0,
           crtDialerPastDue: body.CRT_past_due_count || 0,
+          cotDialerRecords: body.COT_record_count || 0,
+          cotDialerPastDue: body.COT_past_due_count || 0,
         } as DialerRecord;
       });
 

@@ -268,6 +268,6 @@ app.post("/proxy/sales-get-customer-by-cof", async (req, res) => {
   }
 });
 
-app.listen(PORT, () =>
-  console.log(`Proxy server running on port ${PORT}`)
-);
+app.listen(PORT, () => {
+  console.log("Proxy running on port " + PORT);
+});

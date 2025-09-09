@@ -13,6 +13,12 @@ import {
 import { fetchSchedulerData } from "@/lib/fetchSchedulerData";
 import { fetchTodaysDialerRecords, DialerRecord } from "@/lib/dialerRecords";
 import ServiceNowIncidentsChart from "./ServiceNowIncidentsChart";
+import { CampaignStatus } from "./CampaignStatus";
+import {
+  fetchCampaignData,
+  CampaignItem,
+  CampaignStats,
+} from "@/lib/fetchCampaignData";
 import {
   AreaChart,
   Area,
@@ -21,6 +27,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Legend,
 } from "recharts";
 
 interface SchedulerStats {
@@ -114,12 +121,13 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return (
       <div className="p-2 bg-gray-800 bg-opacity-90 border border-gray-700 rounded-md shadow-lg text-white text-xs">
         <p className="font-bold mb-1">{`Date: ${label}`}</p>
-        <p>{`Total Outbound: ${data.totalOutbound}`}</p>
+        <p>{`Total Outbound Records: ${data.totalSalesRecords}`}</p>
         <p>{`Reminder Outbound: ${data.reminderOutbound}`}</p>
         <p>{`Reminder Inbound: ${data.reminderInbound}`}</p>
         <p>{`PP/Web: ${data.reminderPPWeb}`}</p>
         <p>{`Sales Past Due: ${data.salesPastDue}`}</p>
-        <p>{`CRT Past Due: ${data.crtDialerPastDue}`}</p>
+        <p>{`CRT Dialer Past Due: ${data.crtDialerPastDue}`}</p>
+        <p>{`COT Dialer Past Due: ${data.cotDialerPastDue}`}</p>
       </div>
     );
   }
@@ -167,12 +175,13 @@ const MountainGraph = () => {
                 month: "short",
                 day: "numeric",
               }),
-              totalOutbound: body.outbound_records || 0,
+              totalSalesRecords: body.sales_record_count || 0,
               reminderOutbound: body.outbound_records || 0,
               reminderInbound: body.inbound_records || 0,
               reminderPPWeb: body.PP_records || 0,
               salesPastDue: body.past_due_count || 0,
               crtDialerPastDue: body.CRT_past_due_count || 0,
+              cotDialerPastDue: body.COT_past_due_count || 0,
             };
           })
           .sort(
@@ -207,9 +216,13 @@ const MountainGraph = () => {
         margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
       >
         <defs>
-          <linearGradient id="colorUv" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
+          <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#8884d8" stopOpacity={0.4} />
             <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
+          </linearGradient>
+          <linearGradient id="colorReminder" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#34d399" stopOpacity={0.4} />
+            <stop offset="95%" stopColor="#34d399" stopOpacity={0} />
           </linearGradient>
         </defs>
         <XAxis
@@ -221,13 +234,24 @@ const MountainGraph = () => {
         <YAxis stroke="#e2e8f0" tick={{ fontSize: 10 }} tickCount={10} />
         <CartesianGrid strokeDasharray="3 3" stroke="#4b5563" />
         <Tooltip content={<CustomTooltip />} />
+        <Legend wrapperStyle={{ fontSize: "12px" }} />
         <Area
           type="monotone"
-          dataKey="totalOutbound"
+          dataKey="totalSalesRecords"
           stroke="#8884d8"
           fillOpacity={1}
-          fill="url(#colorUv)"
-          className="animate-pulse-line"
+          fill="url(#colorTotal)"
+          name="Total Sales Records"
+          className="pulsating-line-purple"
+        />
+        <Area
+          type="monotone"
+          dataKey="reminderOutbound"
+          stroke="#34d399"
+          fillOpacity={1}
+          fill="url(#colorReminder)"
+          name="Reminder Outbound"
+          className="pulsating-line-green"
         />
       </AreaChart>
     </ResponsiveContainer>
@@ -251,6 +275,16 @@ export function HomePage() {
   const [showAnalogClock, setShowAnalogClock] = useState(false);
   const [clockPosition, setClockPosition] = useState({ x: 0, y: 0 });
   const [hoveredTimezone, setHoveredTimezone] = useState<number | null>(null);
+
+  const [campaignData, setCampaignData] = useState<CampaignItem[]>([]);
+  const [campaignStats, setCampaignStats] = useState<CampaignStats>({
+    total: 0,
+    on: 0,
+    off: 0,
+    percentOn: 0,
+  });
+  const [isCampaignLoading, setIsCampaignLoading] = useState<boolean>(true);
+  const [campaignError, setCampaignError] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -298,6 +332,33 @@ export function HomePage() {
       })
       .finally(() => setIsDialerLoading(false));
   }, []);
+
+  const getCampaignData = useCallback(async () => {
+    setIsCampaignLoading(true);
+    setCampaignError(null);
+    try {
+      const { campaignData, campaignStats } = await fetchCampaignData();
+      setCampaignData(campaignData);
+      setCampaignStats(campaignStats);
+    } catch (err: unknown) {
+      setCampaignError(
+        (err as Error)?.message || "Error fetching campaign data"
+      );
+      setCampaignData([]);
+      setCampaignStats({
+        total: 0,
+        on: 0,
+        off: 0,
+        percentOn: 0,
+      });
+    } finally {
+      setIsCampaignLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    getCampaignData();
+  }, [getCampaignData]);
 
   const getGlowingArrow = (current: number, prev: number) => {
     if (prev === undefined || prev === 0)
@@ -497,7 +558,7 @@ export function HomePage() {
           {/* ServiceNow Incidents Chart */}
           <ServiceNowIncidentsChart />
           {/* AWS Scheduler Summary Cards */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <SummaryCard
               icon={<BarChart2 className="w-5 h-5 text-cyan-500 neon-cyan" />}
               label="Total"
@@ -546,13 +607,13 @@ export function HomePage() {
                 <table className="w-full border-collapse">
                   <thead>
                     <tr className="border-b border-blue-200">
-                      <th className="text-left py-2 px-1 font-semibold text-blue-100 text-sm">
+                      <th className="text-left py-2 px-1 font-semibold text-blue-100 text-xs">
                         Category
                       </th>
-                      <th className="text-right py-2 px-1 font-semibold text-blue-100 text-sm">
+                      <th className="text-right py-2 px-1 font-semibold text-blue-100 text-xs">
                         Count
                       </th>
-                      <th className="text-right py-2 px-1 font-semibold text-blue-100 text-sm">
+                      <th className="text-right py-2 px-1 font-semibold text-blue-100 text-xs">
                         Change
                       </th>
                     </tr>
@@ -571,22 +632,22 @@ export function HomePage() {
                     ) : todaysRecord && Object.keys(todaysRecord).length > 0 ? (
                       [
                         {
-                          label: "Total Outbound Campaign Records",
-                          value: todaysRecord.totalOutbound,
-                          prev: prevRecord?.totalOutbound,
+                          label: "Total Outbound Records",
+                          value: todaysRecord.totalSalesRecords,
+                          prev: prevRecord?.totalSalesRecords,
                         },
                         {
-                          label: "Reminder Outbound Records",
+                          label: "Reminder Outbound",
                           value: todaysRecord.reminderOutbound,
                           prev: prevRecord?.reminderOutbound,
                         },
                         {
-                          label: "Reminder Inbound Records",
+                          label: "Reminder Inbound",
                           value: todaysRecord.reminderInbound,
                           prev: prevRecord?.reminderInbound,
                         },
                         {
-                          label: "Reminder PP/Web Records",
+                          label: "PP/Web",
                           value: todaysRecord.reminderPPWeb,
                           prev: prevRecord?.reminderPPWeb,
                         },
@@ -596,19 +657,24 @@ export function HomePage() {
                           prev: prevRecord?.salesPastDue,
                         },
                         {
-                          label: "CRT Dialer Past Due Records",
+                          label: "CRT Dialer Past Due",
                           value: todaysRecord.crtDialerPastDue,
                           prev: prevRecord?.crtDialerPastDue,
+                        },
+                        {
+                          label: "COT Dialer Past Due",
+                          value: todaysRecord.cotDialerPastDue,
+                          prev: prevRecord?.cotDialerPastDue,
                         },
                       ].map((row, idx) => (
                         <tr
                           key={row.label}
                           className="border-b border-blue-200 hover:bg-blue-900/10 transition-colors"
                         >
-                          <td className="py-2 px-1 text-sm text-blue-50 whitespace-nowrap">
+                          <td className="py-2 px-1 text-xs text-blue-50 whitespace-nowrap">
                             {row.label}
                           </td>
-                          <td className="py-2 px-1 text-right font-mono font-semibold text-base text-blue-50">
+                          <td className="py-2 px-1 text-right font-mono font-semibold text-sm text-blue-50">
                             {row.value?.toLocaleString?.() ?? "0"}
                           </td>
                           <td className="py-2 px-1 text-right">

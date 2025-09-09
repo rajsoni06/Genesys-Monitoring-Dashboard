@@ -30,7 +30,10 @@ interface SidebarProps {
       | "inbound"
       | "outbound"
       | "gdf"
-      | "external",
+      | "external"
+      | "campaign-status"
+      | "queues-status"
+      | "bulk-import",
     url?: string,
     title?: string
   ) => void;
@@ -151,21 +154,21 @@ export function AppSidebar({
       name: "Bulk Import",
       status: "complete",
       icon: Database,
-      url: "https://apps.usw2.pure.cloud/directory/#/admin/directory/peopleV3",
+      action: () => onNavigate("bulk-import"),
     },
     {
       id: "queue-status",
       name: "Queues Status",
       status: "complete",
       icon: Users,
-      url: "https://apps.usw2.pure.cloud/directory/#/admin/admin/organization/_queuesV2",
+      action: () => onNavigate("queues-status"),
     },
     {
       id: "campaign-status",
       name: "Campaign Status",
       status: "complete",
       icon: RefreshCw,
-      url: "https://apps.usw2.pure.cloud/directory/#/admin/outbound/admin/campaignManagement/campaigns",
+      action: () => onNavigate("campaign-status"),
     },
     {
       id: "today-records",
@@ -242,7 +245,7 @@ export function AppSidebar({
     <div
       ref={sidebarRef}
       className={`relative transition-all duration-300 border-r bg-amber-50 dark:bg-gray-900 ${
-        isCollapsed ? "w-16" : "w-64"
+        isCollapsed ? "w-14" : "w-56"
       }`}
       style={{ minHeight: "100vh" }}
       onMouseLeave={() => {
@@ -281,7 +284,7 @@ export function AppSidebar({
           </div>
 
           {/* Sidebar Items */}
-          <div className="p-2 space-y-2">
+          <div className="p-2 space-y-1">
             {processes.map((process) => {
               const IconComponent = process.icon;
               return (
@@ -293,7 +296,7 @@ export function AppSidebar({
                 >
                   <div className="flex items-center gap-2">
                     <IconComponent className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                    <span className="text-sm font-medium text-black dark:text-gray-200">
+                    <span className="text-xs font-medium text-black dark:text-gray-200">
                       {process.name}
                     </span>
                   </div>

@@ -208,12 +208,15 @@ export function PastRecords() {
           };
           return {
             date: record.date,
-            totalOutbound: body.outbound_records || 0,
+            totalSalesRecords: body.sales_record_count || 0,
             reminderOutbound: body.outbound_records || 0,
             reminderInbound: body.inbound_records || 0,
             reminderPPWeb: body.PP_records || 0,
             salesPastDue: body.past_due_count || 0,
+            crtDialerRecords: body.CRT_record_count || 0,
             crtDialerPastDue: body.CRT_past_due_count || 0,
+            cotDialerRecords: body.COT_record_count || 0,
+            cotDialerPastDue: body.COT_past_due_count || 0,
           } as DialerRecord;
         });
 
@@ -537,7 +540,7 @@ export function PastRecords() {
                         Date
                       </th>
                       <th className="text-right py-2 px-3 font-semibold text-gray-300 whitespace-nowrap">
-                        Total Outbound
+                        Total Outbound Records
                       </th>
                       <th className="text-right py-2 px-3 font-semibold text-gray-300 whitespace-nowrap">
                         Reminder Outbound
@@ -552,7 +555,16 @@ export function PastRecords() {
                         Sales Past Due
                       </th>
                       <th className="text-right py-2 px-3 font-semibold text-gray-300 whitespace-nowrap">
+                        CRT Dialer Records
+                      </th>
+                      <th className="text-right py-2 px-3 font-semibold text-gray-300 whitespace-nowrap">
                         CRT Past Due
+                      </th>
+                      <th className="text-right py-2 px-3 font-semibold text-gray-300 whitespace-nowrap">
+                        COT Dialer Records
+                      </th>
+                      <th className="text-right py-2 px-3 font-semibold text-gray-300 whitespace-nowrap">
+                        COT Dialer Past Due Records
                       </th>
                     </tr>
                   </thead>
@@ -567,16 +579,16 @@ export function PastRecords() {
                           <td className="py-3 px-6 text-sm font-mono">
                             {formatDate(record.date)}
                           </td>
-                          {/* Total Outbound with arrow/percent */}
+                          {/* Total Sales Records with arrow/percent */}
                           <td className="py-3 px-6 text-right">
                             <div className="flex items-center justify-end gap-3">
                               <span className="font-mono text-sm">
-                                {record.totalOutbound.toLocaleString()}
+                                {record.totalSalesRecords.toLocaleString()}
                               </span>
                               {previousRecord &&
                                 getChangeArrow(
-                                  record.totalOutbound,
-                                  previousRecord.totalOutbound
+                                  record.totalSalesRecords,
+                                  previousRecord.totalSalesRecords
                                 )}
                             </div>
                           </td>
@@ -626,6 +638,19 @@ export function PastRecords() {
                                 )}
                             </div>
                           </td>
+                          {/* CRT Dialer Records with arrow/percent */}
+                          <td className="py-3 px-6 text-right">
+                            <div className="flex items-center justify-end gap-3">
+                              <span className="font-mono text-sm">
+                                {record.crtDialerRecords.toLocaleString()}
+                              </span>
+                              {previousRecord &&
+                                getChangeArrow(
+                                  record.crtDialerRecords,
+                                  previousRecord.crtDialerRecords
+                                )}
+                            </div>
+                          </td>
                           {/* CRT Past Due with arrow/percent */}
                           <td className="py-3 px-6 text-right font-mono text-sm">
                             <div className="flex items-center justify-end gap-3">
@@ -634,6 +659,30 @@ export function PastRecords() {
                                 getChangeArrow(
                                   record.crtDialerPastDue,
                                   previousRecord.crtDialerPastDue
+                                )}
+                            </div>
+                          </td>
+                          {/* COT Dialer Records with arrow/percent */}
+                          <td className="py-3 px-6 text-right">
+                            <div className="flex items-center justify-end gap-3">
+                              <span className="font-mono text-sm">
+                                {record.cotDialerRecords.toLocaleString()}
+                              </span>
+                              {previousRecord &&
+                                getChangeArrow(
+                                  record.cotDialerRecords,
+                                  previousRecord.cotDialerRecords
+                                )}
+                            </div>
+                          </td>
+                          {/* COT Dialer Past Due Records with arrow/percent */}
+                          <td className="py-3 px-6 text-right font-mono text-sm">
+                            <div className="flex items-center justify-end gap-3">
+                              {record.cotDialerPastDue}
+                              {previousRecord &&
+                                getChangeArrow(
+                                  record.cotDialerPastDue,
+                                  previousRecord.cotDialerPastDue
                                 )}
                             </div>
                           </td>
@@ -648,7 +697,7 @@ export function PastRecords() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           {[
             { label: "Records Found", value: filteredRecords.length },
             {
@@ -659,24 +708,36 @@ export function PastRecords() {
                   : "0 days",
             },
             {
-              label: "Avg Total Outbound",
+              label: "Avg Total Sales Records",
               value:
                 filteredRecords.length > 0
                   ? Math.round(
                       filteredRecords.reduce(
-                        (sum, r) => sum + r.totalOutbound,
+                        (sum, r) => sum + r.totalSalesRecords,
                         0
                       ) / filteredRecords.length
                     ).toLocaleString()
                   : "0",
             },
             {
-              label: "Avg CRT Past Due",
+              label: "Avg CRT Dialer Records",
               value:
                 filteredRecords.length > 0
                   ? Math.round(
                       filteredRecords.reduce(
-                        (sum, r) => sum + r.crtDialerPastDue,
+                        (sum, r) => sum + r.crtDialerRecords,
+                        0
+                      ) / filteredRecords.length
+                    ).toLocaleString()
+                  : "0",
+            },
+            {
+              label: "Avg COT Dialer Records",
+              value:
+                filteredRecords.length > 0
+                  ? Math.round(
+                      filteredRecords.reduce(
+                        (sum, r) => sum + r.cotDialerRecords,
                         0
                       ) / filteredRecords.length
                     ).toLocaleString()
@@ -695,7 +756,7 @@ export function PastRecords() {
               <div className="text-xl md:text-2xl font-semibold text-cyan-300">
                 {stat.value}
               </div>
-              <div className="text-xs md:text-sm text-gray-400 uppercase tracking-wide mt-1">
+              <div className="text-xs md:text-xs text-gray-400 uppercase tracking-wide mt-1">
                 {stat.label}
               </div>
             </div>

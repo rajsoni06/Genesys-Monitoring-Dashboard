@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import GDF from "./components/GDF";
+import { CampaignStatus } from "./components/CampaignStatus";
+import { QueuesStatus } from "./components/QueuesStatus";
 
 const queryClient = new QueryClient();
 
@@ -39,6 +41,18 @@ const App = () => {
               element={<Index />}
             />
             <Route path="/gdf" element={<Index />} />
+            <Route
+              path="/campaign-status"
+              element={<Index />}
+            />
+            <Route
+              path="/queues-status"
+              element={<Index />}
+            />
+            <Route
+              path="/bulk-import"
+              element={<Index />}
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
       </TooltipProvider>
