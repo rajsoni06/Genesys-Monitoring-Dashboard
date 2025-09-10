@@ -583,7 +583,7 @@ export function PastRecords() {
                           <td className="py-3 px-6 text-right">
                             <div className="flex items-center justify-end gap-3">
                               <span className="font-mono text-sm">
-                                {(record.totalSalesRecords + 1).toLocaleString()}
+                                {(record.totalSalesRecords).toLocaleString()}
                               </span>
                               {previousRecord &&
                                 getChangeArrow(

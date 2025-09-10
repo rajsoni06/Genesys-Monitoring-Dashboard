@@ -121,7 +121,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return (
       <div className="p-2 bg-gray-800 bg-opacity-90 border border-gray-700 rounded-md shadow-lg text-white text-xs">
         <p className="font-bold mb-1">{`Date: ${label}`}</p>
-        <p>{`Total Outbound Records: ${data.totalSalesRecords + 1}`}</p>
+        <p>{`Total Outbound Records: ${data.totalSalesRecords}`}</p>
         <p>{`Reminder Outbound: ${data.reminderOutbound}`}</p>
         <p>{`Reminder Inbound: ${data.reminderInbound}`}</p>
         <p>{`PP/Web: ${data.reminderPPWeb}`}</p>
@@ -241,7 +241,7 @@ const MountainGraph = () => {
           stroke="#8884d8"
           fillOpacity={1}
           fill="url(#colorTotal)"
-          name="Total Sales Records"
+          name="Total Outbound Records"
           className="pulsating-line-purple"
         />
         <Area
@@ -676,7 +676,7 @@ export function HomePage() {
                           </td>
                           <td className="py-2 px-1 text-right font-mono font-semibold text-sm text-blue-50">
                             {row.label === "Total Outbound Records" && typeof row.value === 'number'
-                              ? (row.value + 1).toLocaleString()
+                              ? (row.value).toLocaleString()
                               : row.value?.toLocaleString?.() ?? "0"}
                           </td>
                           <td className="py-2 px-1 text-right">
