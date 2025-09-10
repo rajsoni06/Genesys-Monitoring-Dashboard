@@ -121,7 +121,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return (
       <div className="p-2 bg-gray-800 bg-opacity-90 border border-gray-700 rounded-md shadow-lg text-white text-xs">
         <p className="font-bold mb-1">{`Date: ${label}`}</p>
-        <p>{`Total Outbound Records: ${data.totalSalesRecords}`}</p>
+        <p>{`Total Outbound Records: ${data.totalSalesRecords + 1}`}</p>
         <p>{`Reminder Outbound: ${data.reminderOutbound}`}</p>
         <p>{`Reminder Inbound: ${data.reminderInbound}`}</p>
         <p>{`PP/Web: ${data.reminderPPWeb}`}</p>
@@ -362,12 +362,12 @@ export function HomePage() {
 
   const getGlowingArrow = (current: number, prev: number) => {
     if (prev === undefined || prev === 0)
-      return <span className="ml-2 text-xs text-gray-500">0.0%</span>;
+      return <span className="text-xs text-gray-500 flex justify-end">0.0%</span>;
     const change = ((current - prev) / prev) * 100;
     if (change > 0) {
       return (
         <span
-          className="ml-2 text-xs flex items-center font-semibold"
+          className="text-xs flex items-center justify-end font-semibold"
           style={{
             color: "#34d399",
             textShadow: "0 0 1px #34d399",
@@ -388,7 +388,7 @@ export function HomePage() {
     if (change < 0) {
       return (
         <span
-          className="ml-2 text-xs flex items-center font-semibold"
+          className="text-xs flex items-center justify-end font-semibold"
           style={{
             color: "#f87171",
             textShadow: "0 0 1px #f87171",
@@ -406,7 +406,7 @@ export function HomePage() {
         </span>
       );
     }
-    return <span className="ml-2 text-xs text-gray-400">0.0%</span>;
+    return <span className="text-xs text-gray-400 flex justify-end">0.0%</span>;
   };
 
   const formatDate = (date: Date | string) => {
@@ -614,7 +614,7 @@ export function HomePage() {
                         Count
                       </th>
                       <th className="text-right py-2 px-1 font-semibold text-blue-100 text-xs">
-                        Change
+                        Change (%)
                       </th>
                     </tr>
                   </thead>
@@ -675,7 +675,9 @@ export function HomePage() {
                             {row.label}
                           </td>
                           <td className="py-2 px-1 text-right font-mono font-semibold text-sm text-blue-50">
-                            {row.value?.toLocaleString?.() ?? "0"}
+                            {row.label === "Total Outbound Records" && typeof row.value === 'number'
+                              ? (row.value + 1).toLocaleString()
+                              : row.value?.toLocaleString?.() ?? "0"}
                           </td>
                           <td className="py-2 px-1 text-right">
                             {prevRecord && row.prev !== undefined ? (
