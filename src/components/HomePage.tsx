@@ -153,7 +153,16 @@ const MountainGraph = () => {
             startDate
           )}&endDate=${formatDate(endDate)}`
         );
-        const apiResponse = await res.json();
+        const text = await res.text();
+        let apiResponse;
+        try {
+          apiResponse = JSON.parse(text);
+        } catch (e) {
+          console.error("Error parsing JSON for mountain graph", e);
+          setData([]);
+          setLoading(false);
+          return;
+        }
 
         let recordsArray = [];
         if (Array.isArray(apiResponse)) {

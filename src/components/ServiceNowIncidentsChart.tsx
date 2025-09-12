@@ -16,13 +16,16 @@ const ServiceNowIncidentsChart: React.FC = () => {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        const data = await response.json();
-        if (typeof data.count === "number") {
-          setIncidentCount(data.count);
-        } else {
-          throw new Error(
-            "Invalid data format: count not found or not a number"
-          );
+        const text = await response.text();
+        try {
+          const data = JSON.parse(text);
+          if (typeof data.count === "number") {
+            setIncidentCount(data.count);
+          } else {
+            throw new Error("Invalid data format");
+          }
+        } catch (e) {
+          throw new Error("Invalid response");
         }
       } catch (err) {
         console.error("Error fetching ServiceNow incidents:", err);
