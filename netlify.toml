@@ -11,6 +11,11 @@
   status = 200
 
 [[redirects]]
+  from = "/proxy/aws-scheduler"
+  to = "/.netlify/functions/aws-scheduler"
+  status = 200
+
+[[redirects]]
   from = "/proxy/*"
   to = "https://86dfqxwd74.execute-api.us-east-1.amazonaws.com/Pre-prod/:splat"
   status = 200

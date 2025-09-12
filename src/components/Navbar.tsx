@@ -298,7 +298,7 @@ export function Navbar({ setIsSidebarCollapsed }: NavbarProps) {
             <DropdownMenu open={pocOpen} onOpenChange={setPocOpen}>
               <DropdownMenuTrigger asChild>
                 <button className="rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200">
-                  <div className="flex items-center gap-2 px-2 py-1 bg-amber-50 dark:bg-gray-800 hover:bg-amber-100 dark:hover:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600 h-8 hover:border-cyan-500">
+                  <div className="flex items-center gap-2 px-2 py-1 bg-amber-50 dark:bg-gray-800 hover:bg-amber-100 dark:hover:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-400 h-8 hover:border-cyan-500">
                     <User className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                     <span className="text-sm font-medium text-black dark:text-gray-200">
                       POC
@@ -332,7 +332,7 @@ export function Navbar({ setIsSidebarCollapsed }: NavbarProps) {
                     {upcomingPOCs.map((poc) => (
                       <div
                         key={poc.name + poc.month}
-                        className="flex justify-between items-center py-1 border-b border-gray-100 dark:border-gray-700 last:border-b-0"
+                        className="flex justify-between items-center py-1 border-b border-gray-100 dark:border-gray-400 last:border-b-0"
                       >
                         <span className="text-sm text-black dark:text-gray-200">
                           {poc.name}

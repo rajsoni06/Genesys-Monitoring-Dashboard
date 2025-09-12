@@ -143,7 +143,7 @@ const MountainGraph = () => {
       setLoading(true);
       const endDate = new Date();
       const startDate = new Date();
-      startDate.setDate(endDate.getDate() - 14); // Fetch last 6 days (current day + 9 previous days)
+      startDate.setDate(endDate.getDate() - 5); // Fetch last 6 days (current day + 5 previous days)
 
       const formatDate = (d: Date) => d.toISOString().slice(0, 15);
 
@@ -362,7 +362,9 @@ export function HomePage() {
 
   const getGlowingArrow = (current: number, prev: number) => {
     if (prev === undefined || prev === 0)
-      return <span className="text-xs text-gray-500 flex justify-end">0.0%</span>;
+      return (
+        <span className="text-xs text-gray-500 flex justify-end">0.0%</span>
+      );
     const change = ((current - prev) / prev) * 100;
     if (change > 0) {
       return (
@@ -675,8 +677,9 @@ export function HomePage() {
                             {row.label}
                           </td>
                           <td className="py-2 px-1 text-right font-mono font-semibold text-sm text-blue-50">
-                            {row.label === "Total Outbound Records" && typeof row.value === 'number'
-                              ? (row.value).toLocaleString()
+                            {row.label === "Total Outbound Records" &&
+                            typeof row.value === "number"
+                              ? row.value.toLocaleString()
                               : row.value?.toLocaleString?.() ?? "0"}
                           </td>
                           <td className="py-2 px-1 text-right">
