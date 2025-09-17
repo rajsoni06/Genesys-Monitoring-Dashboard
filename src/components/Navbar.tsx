@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useNavigate } from "react-router-dom";
+import { ActivePage } from "./Dashboard";
 
 interface CustomDropdownProps {
   title: string;
@@ -84,14 +85,15 @@ interface NavbarProps {
   setIsSidebarCollapsed: (
     value: boolean | ((prev: boolean) => boolean)
   ) => void;
+  handleLogout: () => void;
+  handleNavigate: (page: ActivePage, url?: string, title?: string) => void;
 }
 
-export function Navbar({ setIsSidebarCollapsed }: NavbarProps) {
+export function Navbar({ setIsSidebarCollapsed, handleLogout, handleNavigate }: NavbarProps) {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [pocOpen, setPocOpen] = useState(false);
   const [showUnderDevelopmentModal, setShowUnderDevelopmentModal] =
     useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     document.documentElement.classList.add("dark");
@@ -183,19 +185,14 @@ export function Navbar({ setIsSidebarCollapsed }: NavbarProps) {
           .concat(pocData.slice(0, currentPOCIndex))
       : pocData.slice(1);
 
-  const handlePageChange = (page: string) => {
-    navigate(`/${page}`);
-    setIsSidebarCollapsed(true);
-  };
-
   return (
     <>
       <nav className="h-14 bg-amber-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4 sm:px-6 lg:px-8 shadow-sm">
         {/* Left Section: Sidebar Trigger and Logo */}
         <div className="flex items-center gap-4">
           <SidebarTrigger className="lg:hidden" />
-          <a
-            href="/"
+          <button
+            onClick={() => handleNavigate("home")}
             className="rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200"
             aria-label="Go to Home Page"
           >
@@ -225,7 +222,7 @@ export function Navbar({ setIsSidebarCollapsed }: NavbarProps) {
                 Genesys Monitoring Dashboard
               </span>
             </div>
-          </a>
+          </button>
         </div>
 
         {/* Right Section: Navigation Links and Theme Toggle */}
@@ -245,7 +242,7 @@ export function Navbar({ setIsSidebarCollapsed }: NavbarProps) {
           <CustomDropdown title="Architecture">
             <DropdownMenuItem asChild>
               <button
-                onClick={() => handlePageChange("inbound")}
+                onClick={() => handleNavigate("inbound")}
                 className="flex items-center justify-between w-full px-1 py-1 text-sm text-black dark:text-gray-200 hover:bg-amber-100 dark:hover:bg-gray-700 cursor-pointer rounded-md"
               >
                 Inbound Architecture
@@ -254,7 +251,7 @@ export function Navbar({ setIsSidebarCollapsed }: NavbarProps) {
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <button
-                onClick={() => handlePageChange("outbound")}
+                onClick={() => handleNavigate("outbound")}
                 className="flex items-center justify-between w-full px-1 py-1 text-sm text-black dark:text-gray-200 hover:bg-amber-100 dark:hover:bg-gray-700 cursor-pointer rounded-md"
               >
                 Outbound Architecture
@@ -263,7 +260,7 @@ export function Navbar({ setIsSidebarCollapsed }: NavbarProps) {
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <button
-                onClick={() => handlePageChange("gdf")}
+                onClick={() => handleNavigate("gdf")}
                 className="flex items-center justify-between w-full px-1 py-1 text-sm text-black dark:text-gray-200 hover:bg-amber-100 dark:hover:bg-gray-700 cursor-pointer rounded-md"
               >
                 GDF Architecture
@@ -376,11 +373,19 @@ export function Navbar({ setIsSidebarCollapsed }: NavbarProps) {
                 className="w-40 bg-amber-50 dark:bg-gray-800 border border-blue-200 dark:border-gray-600 shadow-md"
                 align="end"
               >
+                <DropdownMenuItem asChild>
+                  <button
+                    onClick={() => handleNavigate("profile")}
+                    className="flex items-center justify-between px-4 py-1 text-sm text-black dark:text-gray-200 hover:bg-amber-100 dark:hover:bg-gray-700 cursor-pointer rounded-md w-auto"
+                  >
+                    Profile
+                  </button>
+                </DropdownMenuItem>
                 <DropdownMenuItem
-                  onClick={() => setShowUnderDevelopmentModal(true)}
+                  onClick={handleLogout}
                   className="flex items-center justify-between px-4 py-1 text-sm text-black dark:text-gray-200 hover:bg-amber-100 dark:hover:bg-gray-700 cursor-pointer rounded-md w-auto"
                 >
-                  Login
+                  Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

@@ -267,7 +267,8 @@ const MountainGraph = () => {
   );
 };
 
-export function HomePage() {
+export function HomePage({ currentUser }: { currentUser: { name: string, email: string } }) {
+  console.log("currentUser in HomePage.tsx:", currentUser);
   const [schedulerStats, setSchedulerStats] = useState<SchedulerStats>({
     total: 0,
     enabled: 0,
@@ -523,9 +524,12 @@ export function HomePage() {
         {/* Welcome Section */}
         <div className="glass-card p-2 rounded-2xl shadow flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex-1 text-center md:text-left">
-            <h1 className="text-[1.5rem] md:text-[1.3rem] font-bold text-white mb-1">
-              Welcome to Genesys Monitoring Dashboard
+            <h1 className="text-lg font-bold text-white mb-2">
+              Hi, {currentUser.name}
             </h1>
+            <h2 className="text-[1.5rem] md:text-[1.3rem] font-bold text-white mb-1">
+              Welcome to Genesys Monitoring Dashboard
+            </h2>
             <p className="text-[0.82rem] text-blue-100 mb-2">
               Monitor and manage your Genesys Cloud infrastructure with
               real-time insights

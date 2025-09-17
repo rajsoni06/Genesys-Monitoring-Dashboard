@@ -12,6 +12,7 @@ import GDF from "@/components/GDF";
 import { CampaignStatus } from "@/components/CampaignStatus";
 import { QueuesStatus } from "@/components/QueuesStatus";
 import { BulkImport } from "@/components/BulkImport";
+import Profile from "./Profile";
 import { fetchCampaignData, CampaignItem, CampaignStats } from "@/lib/fetchCampaignData";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -28,7 +29,7 @@ interface SchedulerStats {
   percentEnabled: number;
 }
 
-type ActivePage =
+export type ActivePage =
   | "home"
   | "api-validation"
   | "past-records"
@@ -39,7 +40,8 @@ type ActivePage =
   | "external"
   | "campaign-status"
   | "queues-status"
-  | "bulk-import";
+  | "bulk-import"
+  | "profile";
 
 interface DashboardState {
   activePage: ActivePage;
@@ -47,7 +49,7 @@ interface DashboardState {
   pageTitle?: string;
 }
 
-export const Dashboard = () => {
+export const Dashboard = ({ handleLogout, currentUser }: { handleLogout: () => void, currentUser: { name: string, email: string } }) => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [dashboardState, setDashboardState] = useState<DashboardState>({
     activePage: "aws-scheduler",
@@ -99,6 +101,7 @@ export const Dashboard = () => {
       "campaign-status",
       "queues-status",
       "bulk-import",
+      "profile",
     ];
     const newPage = validPages.includes(path as ActivePage)
       ? (path as ActivePage)
@@ -221,7 +224,7 @@ export const Dashboard = () => {
   const renderContent = () => {
     switch (dashboardState.activePage) {
       case "home":
-        return <HomePage />;
+        return <HomePage currentUser={currentUser} />;
       case "api-validation":
         return <APIValidation />;
       case "past-records":
@@ -271,6 +274,8 @@ export const Dashboard = () => {
             onRetry={fetchQueuesData}
           />
         );
+      case "profile":
+        return <Profile currentUser={currentUser} />;
       case "external":
         return dashboardState.externalUrl ? (
           <iframe
@@ -286,7 +291,7 @@ export const Dashboard = () => {
           </div>
         );
       default:
-        return <HomePage />;
+        return <HomePage currentUser={currentUser} />;
     }
   };
 
@@ -302,7 +307,7 @@ export const Dashboard = () => {
           setIsCollapsed={setIsSidebarCollapsed}
         />
         <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-          <Navbar setIsSidebarCollapsed={setIsSidebarCollapsed} />
+          <Navbar setIsSidebarCollapsed={setIsSidebarCollapsed} handleLogout={handleLogout} handleNavigate={handleNavigate} />
           <main
             className={
               dashboardState.activePage === "external"

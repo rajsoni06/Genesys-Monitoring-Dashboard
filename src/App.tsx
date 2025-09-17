@@ -1,60 +1,50 @@
+import { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
-import GDF from "./components/GDF";
-import { CampaignStatus } from "./components/CampaignStatus";
-import { QueuesStatus } from "./components/QueuesStatus";
+import AuthModal from "./components/AuthModal";
 
 const queryClient = new QueryClient();
 
 const App = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentUser, setCurrentUser] = useState({ name: '', email: '' });
+
+  const handleLoginSuccess = (userData) => {
+    setIsAuthenticated(true);
+    setCurrentUser(userData);
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setCurrentUser({ name: '', email: '' });
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <Routes>
+        {!isAuthenticated ? (
+          <AuthModal
+            isOpen={true}
+            onClose={() => {}}
+            initialMode="login"
+            onLoginSuccess={handleLoginSuccess}
+          />
+        ) : (
+          <Routes>
             <Route
-              path="/"
-              element={<Index />}
-            />
-            <Route
-              path="/home"
-              element={<Index />}
-            />
-            <Route
-              path="/aws-scheduler"
-              element={<Index />}
-            />
-            <Route path="/inbound" element={<Index />} />
-            <Route path="/outbound" element={<Index />} />
-            <Route
-              path="/api-validation"
-              element={<Index />}
-            />
-            <Route
-              path="/past-records"
-              element={<Index />}
-            />
-            <Route path="/gdf" element={<Index />} />
-            <Route
-              path="/campaign-status"
-              element={<Index />}
-            />
-            <Route
-              path="/queues-status"
-              element={<Index />}
-            />
-            <Route
-              path="/bulk-import"
-              element={<Index />}
+              path="/*"
+              element={<Index handleLogout={handleLogout} currentUser={currentUser} />}
             />
             <Route path="*" element={<NotFound />} />
           </Routes>
+        )}
       </TooltipProvider>
     </QueryClientProvider>
   );
