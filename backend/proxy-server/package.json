@@ -1,0 +1,21 @@
+{
+  "name": "proxy-server",
+  "version": "1.0.0",
+  "main": "server.cjs",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.cjs"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "description": "",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "node-fetch": "^2.7.0",
+    "serverless-http": "^3.2.0"
+  }
+}
