@@ -65,10 +65,10 @@ export function APIValidation() {
       }
       const data = await response.json();
       setTokenJson(data);
-      if (!data.access_token && !data.error) {
-        throw new Error("No access_token in response");
+      if (!data.access_token && !data.token && !data.error) {
+        throw new Error("No access_token or token in response");
       }
-      setToken(data.error ? null : data.access_token);
+      setToken(data.error ? null : (data.access_token || data.token));
       setHistory((prev) => [
         ...prev,
         data.error ? "Token fetch failed" : "Token fetched",

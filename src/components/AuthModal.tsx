@@ -4,6 +4,10 @@ import { X, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import "./AuthModal.css";
+import { googleProvider, microsoftProvider } from "../../firebase";
+
+
+
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -31,16 +35,50 @@ const AuthModal: React.FC<AuthModalProps> = ({
     password: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  
+
+  const handleGoogleSignIn = async () => {
+    alert(
+      "For enhanced security, Google and Microsoft authentication options are unavailable. Kindly reach out to your administrator or supervisor for login details."
+    );
+  };
+
+  const handleMicrosoftSignIn = async () => {
+    alert(
+      "For enhanced security, Google and Microsoft authentication options are disabled. Kindly reach out to your administrator or supervisor for login details."
+    );
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle authentication logic here
-    console.log("Auth submitted:", { mode, formData });
-    if (mode === "login") {
-      onLoginSuccess({ name: "Raj Anand Soni", email: formData.email });
-    } else {
-      onLoginSuccess(formData);
+    console.log("Form submitted.");
+    console.log("formData:", formData);
+    try {
+      if (mode === "login") {
+        console.log("Login mode detected.");
+        const isEmailValid = formData.email.endsWith("@cognizant.com");
+        const isPasswordValid = formData.password === "ctsgmd";
+        console.log("isEmailValid:", isEmailValid);
+        console.log("isPasswordValid:", isPasswordValid);
+
+        if (isEmailValid && isPasswordValid) {
+          console.log("Authentication successful.");
+          onLoginSuccess({
+            name: "Cognizant User", // Placeholder name
+            email: formData.email,
+          });
+        } else {
+          console.log("Authentication failed.");
+          alert("Authentication failed. Please check your email and password and try again.");
+        }
+      } else {
+        console.log("Signup mode detected. Not supported.");
+        alert("Sign up is not supported with this authentication method.");
+      }
+    } catch (error: Error) {
+      console.error("Authentication error:", error);
+      alert(error.message);
     }
-    onClose();
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -223,20 +261,29 @@ Ensure seamless customer interactions.`,
                 </p>
               </div>
 
-              <div className="mt-6 pt-6 border-t border-gray-700">
-                <Button
-                  variant="outline"
-                  className="w-full border-gray-600 hover:bg-gray-800 text-gray-300"
+              <div className="mt-6 pt-6 border-t border-gray-700 flex flex-col space-y-3">
+                <button
+                  onClick={handleGoogleSignIn}
+                  className="w-full flex items-center justify-center px-4 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700"
                 >
-                  <div className="google-icon-frame">
-                    <img
-                      src="https://developers.google.com/identity/images/g-logo.png"
-                      alt="Google"
-                      className="w-5 h-5"
-                    />
-                  </div>
-                  Continue with Google
-                </Button>
+                  <img
+                    src="/google-logo.svg"
+                    alt="Google"
+                    className="h-5 w-5 mr-2"
+                  />
+                  Sign in with Google
+                </button>
+                <button
+                  onClick={handleMicrosoftSignIn}
+                  className="w-full flex items-center justify-center px-4 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700"
+                >
+                  <img
+                    src="/microsoft-logo.svg"
+                    alt="Microsoft"
+                    className="h-5 w-5 mr-2"
+                  />
+                  Sign in with Microsoft
+                </button>
               </div>
             </motion.div>
           </motion.div>

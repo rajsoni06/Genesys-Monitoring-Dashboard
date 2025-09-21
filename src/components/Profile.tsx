@@ -1,9 +1,13 @@
-import React from 'react';
-import { User } from 'lucide-react';
-import './Profile.css';
+import React from "react";
+import { User } from "lucide-react";
+import "./Profile.css";
 
-const Profile: React.FC<{ currentUser: { name: string, email: string } }> = ({ currentUser }) => {
-  const username = currentUser.name ? currentUser.name.toLowerCase().replace(' ', '.') : 'N/A';
+const Profile: React.FC<{ currentUser: { name: string; email: string } }> = ({
+  currentUser,
+}) => {
+  const username = currentUser.name
+    ? currentUser.name.toLowerCase().replace(" ", ".")
+    : "N/A";
   return (
     <div className="profile-container">
       <div className="profile-card">
@@ -11,7 +15,7 @@ const Profile: React.FC<{ currentUser: { name: string, email: string } }> = ({ c
           <div className="profile-avatar">
             <User />
           </div>
-          <h2 className="profile-name">{currentUser.name || 'User Name'}</h2>
+          <h2 className="profile-name">{currentUser.name || "User Name"}</h2>
           <p className="profile-email">{currentUser.email}</p>
         </div>
         <div className="profile-details">
@@ -26,7 +30,7 @@ const Profile: React.FC<{ currentUser: { name: string, email: string } }> = ({ c
           </div>
           <div className="detail-item">
             <span className="detail-label">Member Since:</span>
-            <span className="detail-value">January 2023</span>
+            <span className="detail-value">September 2025</span>
           </div>
         </div>
       </div>
