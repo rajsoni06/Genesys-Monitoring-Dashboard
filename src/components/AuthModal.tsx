@@ -6,9 +6,6 @@ import { Input } from "@/components/ui/input";
 import "./AuthModal.css";
 import { googleProvider, microsoftProvider } from "../../firebase";
 
-
-
-
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -34,8 +31,6 @@ const AuthModal: React.FC<AuthModalProps> = ({
     email: "",
     password: "",
   });
-
-  
 
   const handleGoogleSignIn = async () => {
     alert(
@@ -69,7 +64,9 @@ const AuthModal: React.FC<AuthModalProps> = ({
           });
         } else {
           console.log("Authentication failed.");
-          alert("Authentication failed. Please check your email and password and try again.");
+          alert(
+            "Authentication failed. Please check your email and password and try again."
+          );
         }
       } else {
         console.log("Signup mode detected. Not supported.");
@@ -266,11 +263,12 @@ Ensure seamless customer interactions.`,
                   onClick={handleGoogleSignIn}
                   className="w-full flex items-center justify-center px-4 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700"
                 >
-                  <img
-                    src="/google-logo.svg"
-                    alt="Google"
-                    className="h-5 w-5 mr-2"
-                  />
+                  <div className="google-icon-frame">
+                    <img
+                      src="https://static.cdnlogo.com/logos/g/23/goolge-icon.png"
+                      alt="Google"
+                    />
+                  </div>
                   Sign in with Google
                 </button>
                 <button
@@ -278,7 +276,7 @@ Ensure seamless customer interactions.`,
                   className="w-full flex items-center justify-center px-4 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700"
                 >
                   <img
-                    src="/microsoft-logo.svg"
+                    src="https://pngimg.com/uploads/microsoft/microsoft_PNG13.png"
                     alt="Microsoft"
                     className="h-5 w-5 mr-2"
                   />
