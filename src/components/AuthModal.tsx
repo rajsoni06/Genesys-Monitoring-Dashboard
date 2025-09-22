@@ -265,8 +265,9 @@ Ensure seamless customer interactions.`,
                 >
                   <div className="google-icon-frame">
                     <img
-                      src="https://static.cdnlogo.com/logos/g/23/goolge-icon.png"
+                      src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png"
                       alt="Google"
+                      style={{ width: '20px', height: '20px' }} 
                     />
                   </div>
                   Sign in with Google
