@@ -258,10 +258,10 @@ Ensure seamless customer interactions.`,
                 </p>
               </div>
 
-              <div className="mt-6 pt-6 border-t border-gray-700 flex flex-col space-y-3">
+              <div className="mt-5 pt-5 border-t border-gray-700 flex flex-col space-y-3">
                 <button
                   onClick={handleGoogleSignIn}
-                  className="w-full flex items-center justify-center px-4 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700"
+                  className="w-full flex items-center justify-center px-3 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700"
                 >
                   <div className="google-icon-frame">
                     <img
@@ -277,9 +277,9 @@ Ensure seamless customer interactions.`,
                   className="w-full flex items-center justify-center px-4 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700"
                 >
                   <img
-                    src="https://pngimg.com/uploads/microsoft/microsoft_PNG13.png"
+                    src="https://www.logo.wine/a/logo/Microsoft_Store/Microsoft_Store-Logo.wine.svg"
                     alt="Microsoft"
-                    className="h-5 w-5 mr-2"
+                    className="h-6 w-6 mr-2"
                   />
                   Sign in with Microsoft
                 </button>
