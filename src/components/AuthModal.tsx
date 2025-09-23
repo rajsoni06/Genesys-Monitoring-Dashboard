@@ -265,23 +265,23 @@ Ensure seamless customer interactions.`,
                 >
                   <div className="google-icon-frame">
                     <img
-                      src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png"
+                      src="Google_Icon.png"
                       alt="Google"
-                      style={{ width: '20px', height: '20px' }} 
+                      style={{ width: "24px", height: "24px" }}
                     />
                   </div>
-                  Sign in with Google
+                  <span className="ml-2">Sign in with Google</span>
                 </button>
                 <button
                   onClick={handleMicrosoftSignIn}
                   className="w-full flex items-center justify-center px-4 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700"
                 >
                   <img
-                    src="https://www.logo.wine/a/logo/Microsoft_Store/Microsoft_Store-Logo.wine.svg"
+                    src="Microsoft.png"
                     alt="Microsoft"
-                    className="h-6 w-6 mr-2"
+                    style={{ width: "24px", height: "24px" }}
                   />
-                  Sign in with Microsoft
+                  <span className="ml-3">Sign in with Microsoft</span>
                 </button>
               </div>
             </motion.div>
