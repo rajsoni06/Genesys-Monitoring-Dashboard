@@ -87,30 +87,6 @@ export function AppSidebar({
     setHovering(false);
   };
 
-  // Show expand arrow when collapsed
-  const ExpandArrow = (
-    <button
-      className="absolute left-2 top-4 z-20 p-1 rounded-full bg-white/80 hover:bg-white shadow transition-all"
-      onClick={handleToggleSidebar}
-      aria-label="Expand sidebar"
-      tabIndex={0}
-    >
-      <ChevronRight className="w-5 h-5 text-blue-600" />
-    </button>
-  );
-
-  // Show collapse arrow when expanded
-  const CollapseArrow = (
-    <button
-      className="p-1 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
-      onClick={handleToggleSidebar}
-      aria-label="Collapse sidebar"
-      tabIndex={0}
-    >
-      <ChevronLeft className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-    </button>
-  );
-
   const [processes, setProcesses] = useState<ProcessStatus[]>([
     {
       id: "pp-chat",
@@ -244,7 +220,7 @@ export function AppSidebar({
   return (
     <div
       ref={sidebarRef}
-      className={`relative transition-all duration-300 border-r bg-amber-50 dark:bg-gray-900 ${
+      className={`relative flex flex-col border-r bg-amber-50 dark:bg-gray-900 overflow-hidden transition-[width] duration-400 ease-in-out ${
         isCollapsed ? "w-14" : "w-56"
       }`}
       style={{ minHeight: "100vh" }}
@@ -253,68 +229,77 @@ export function AppSidebar({
         setHovering(false);
       }}
     >
-      {/* Expand arrow when collapsed */}
-      {isCollapsed && ExpandArrow}
+      {/* Toggle Button (always visible) */}
+      <button
+        onClick={handleToggleSidebar}
+        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        className={`absolute top-3 z-20 p-1 rounded-full shadow transition-colors ${
+          isCollapsed
+            ? "left-2 bg-white/80 hover:bg-white"
+            : "right-3 bg-gray-200/70 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+        }`}
+      >
+        {isCollapsed ? (
+          <ChevronRight className="w-5 h-5 text-blue-600" />
+        ) : (
+          <ChevronLeft className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        )}
+      </button>
 
-      {/* Sidebar Content with smooth transition */}
-      {isCollapsed ? (
-        <div className="flex flex-col items-center pt-16 space-y-1.5">
-          {processes.map((process) => {
-            const IconComponent = process.icon;
-            return (
-              <button
-                key={process.id}
-                onClick={() => handleProcessClick(process)}
-                className="flex items-center justify-center w-9 h-9 rounded-md hover:bg-rose-200 dark:hover:bg-gray-700 transition-all"
-                tabIndex={0}
-              >
-                <IconComponent className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              </button>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="transition-all duration-300 opacity-100 scale-100">
-          {/* Header */}
-          <div className="flex items-center justify-between h-14 px-4 border-b border-amber-100 dark:border-gray-700">
-            <h1 className="text-lg font-semibold text-black dark:text-gray-200">
-              Processes
-            </h1>
-            {CollapseArrow}
-          </div>
+      {/* Header */}
+      <div className="flex items-center justify-start h-14 px-4 border-b border-amber-100 dark:border-gray-700">
+        <h1
+          className={`text-lg font-semibold text-black dark:text-gray-200 transition-all duration-300 origin-left ${
+            isCollapsed
+              ? "opacity-0 -translate-x-4 scale-95 pointer-events-none"
+              : "opacity-100 translate-x-0 scale-100"
+          }`}
+        >
+          Processes
+        </h1>
+      </div>
 
-          {/* Sidebar Items */}
-          <div className="p-2 space-y-1">
-            {processes.map((process) => {
-              const IconComponent = process.icon;
-              return (
-                <button
-                  key={process.id}
-                  onClick={() => handleProcessClick(process)}
-                  className="w-full flex items-center justify-between p-2 rounded-md hover:bg-rose-200 dark:hover:bg-gray-700 transition-all"
-                  tabIndex={0}
+      {/* Items */}
+      <div className="flex-1 p-2 space-y-1">
+        {processes.map((process) => {
+          const IconComponent = process.icon;
+          const showStatus = !isCollapsed;
+          return (
+            <button
+              key={process.id}
+              onClick={() => handleProcessClick(process)}
+              className="group w-full flex items-center justify-between px-2 py-2 rounded-md hover:bg-rose-200 dark:hover:bg-gray-700 transition-colors"
+              tabIndex={0}
+            >
+              <div className="flex items-center min-w-0">
+                <IconComponent className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                <span
+                  className={`ml-2 text-xs font-medium text-black dark:text-gray-200 whitespace-nowrap transition-all duration-300 ${
+                    isCollapsed
+                      ? "opacity-0 -translate-x-3 w-0 overflow-hidden"
+                      : "opacity-100 translate-x-0 w-auto"
+                  }`}
                 >
-                  <div className="flex items-center gap-2">
-                    <IconComponent className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                    <span className="text-xs font-medium text-black dark:text-gray-200">
-                      {process.name}
-                    </span>
-                  </div>
-                  <div
-                    className="cursor-pointer"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleProcessStatus(process.id);
-                    }}
-                  >
-                    {getStatusIcon(process)}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
+                  {process.name}
+                </span>
+              </div>
+              <div
+                className={`transition-all duration-300 ${
+                  showStatus
+                    ? "opacity-100 translate-x-0"
+                    : "opacity-0 -translate-x-2 pointer-events-none"
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleProcessStatus(process.id);
+                }}
+              >
+                {getStatusIcon(process)}
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }

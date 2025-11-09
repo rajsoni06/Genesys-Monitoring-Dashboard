@@ -4,7 +4,6 @@ import { X, Mail, Lock, User, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import "./AuthModal.css";
-import { googleProvider, microsoftProvider } from "../../firebase";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -19,12 +18,11 @@ const AuthModal: React.FC<AuthModalProps> = ({
   initialMode,
   onLoginSuccess,
 }) => {
-  const [mode, setMode] = useState(initialMode);
+  const [mode, setMode] = useState<"login">("login"); // force login only
+  // Remove effect that changed mode
+  // useEffect(() => { setMode(initialMode); }, [initialMode]);
   const [currentSubTextIndex, setCurrentSubTextIndex] = useState(0);
 
-  useEffect(() => {
-    setMode(initialMode);
-  }, [initialMode]);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -51,8 +49,13 @@ const AuthModal: React.FC<AuthModalProps> = ({
     try {
       if (mode === "login") {
         console.log("Login mode detected.");
-        const isEmailValid = formData.email.endsWith("@cognizant.com");
-        const isPasswordValid = formData.password === "ctsgmd";
+
+        const emailNormalized = formData.email.trim().toLowerCase();
+        const passwordNormalized = formData.password.trim().toLowerCase();
+
+        const isEmailValid = emailNormalized.endsWith("@cognizant.com");
+        const isPasswordValid = passwordNormalized === "ctsgmd";
+
         console.log("isEmailValid:", isEmailValid);
         console.log("isPasswordValid:", isPasswordValid);
 
@@ -72,9 +75,13 @@ const AuthModal: React.FC<AuthModalProps> = ({
         console.log("Signup mode detected. Not supported.");
         alert("Sign up is not supported with this authentication method.");
       }
-    } catch (error: Error) {
+    } catch (error: unknown) {
       console.error("Authentication error:", error);
-      alert(error.message);
+      if (error instanceof Error) {
+        alert(error.message);
+      } else {
+        alert("An unknown error occurred.");
+      }
     }
   };
 
@@ -176,21 +183,7 @@ Ensure seamless customer interactions.`,
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
-                {mode === "signup" && (
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <Input
-                      type="text"
-                      name="name"
-                      placeholder="Full Name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      className="pl-10 auth-input"
-                      required
-                    />
-                  </div>
-                )}
-
+                {/* Signup fields removed since signup disabled */}
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <Input
@@ -204,7 +197,6 @@ Ensure seamless customer interactions.`,
                     required
                   />
                 </div>
-
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <Input
@@ -214,9 +206,7 @@ Ensure seamless customer interactions.`,
                     value={formData.password}
                     onChange={handleInputChange}
                     className="pl-10 pr-10 auth-input"
-                    autoComplete={
-                      mode === "login" ? "current-password" : "new-password"
-                    }
+                    autoComplete="current-password"
                     required
                   />
                   <Button
@@ -233,30 +223,16 @@ Ensure seamless customer interactions.`,
                     )}
                   </Button>
                 </div>
-
                 <Button
                   type="submit"
                   className="w-full bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-semibold py-3"
                 >
-                  {mode === "login" ? "Login" : "Create Account"}
+                  Login
                 </Button>
               </form>
 
-              <div className="mt-6 text-center">
-                <p className="text-gray-400">
-                  {mode === "login"
-                    ? "Don't have an account?"
-                    : "Already have an account?"}{" "}
-                  <button
-                    onClick={() =>
-                      setMode(mode === "login" ? "signup" : "login")
-                    }
-                    className="text-orange-500 hover:text-orange-600 font-semibold"
-                  >
-                    {mode === "login" ? "Sign Up" : "Login"}
-                  </button>
-                </p>
-              </div>
+              {/* Removed the Sign Up toggle section */}
+              {/* <div className="mt-6 text-center"> ... </div> */}
 
               <div className="mt-5 pt-5 border-t border-gray-700 flex flex-col space-y-3">
                 <button
@@ -265,23 +241,23 @@ Ensure seamless customer interactions.`,
                 >
                   <div className="google-icon-frame">
                     <img
-                      src="Google_Icon.png"
+                      src="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png"
                       alt="Google"
-                      style={{ width: "24px", height: "24px" }}
+                      style={{ width: "20px", height: "20px" }}
                     />
                   </div>
-                  <span className="ml-2">Sign in with Google</span>
+                  Sign in with Google
                 </button>
                 <button
                   onClick={handleMicrosoftSignIn}
                   className="w-full flex items-center justify-center px-4 py-2 border border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-300 bg-gray-800 hover:bg-gray-700"
                 >
                   <img
-                    src="Microsoft.png"
+                    src="https://www.logo.wine/a/logo/Microsoft_Store/Microsoft_Store-Logo.wine.svg"
                     alt="Microsoft"
-                    style={{ width: "24px", height: "24px" }}
+                    className="h-6 w-6 mr-2"
                   />
-                  <span className="ml-3">Sign in with Microsoft</span>
+                  Sign in with Microsoft
                 </button>
               </div>
             </motion.div>

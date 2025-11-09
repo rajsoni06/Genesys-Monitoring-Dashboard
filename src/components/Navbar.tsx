@@ -89,7 +89,11 @@ interface NavbarProps {
   handleNavigate: (page: ActivePage, url?: string, title?: string) => void;
 }
 
-export function Navbar({ setIsSidebarCollapsed, handleLogout, handleNavigate }: NavbarProps) {
+export function Navbar({
+  setIsSidebarCollapsed,
+  handleLogout,
+  handleNavigate,
+}: NavbarProps) {
   const [isDarkMode, setIsDarkMode] = useState(true);
   const [pocOpen, setPocOpen] = useState(false);
   const [showUnderDevelopmentModal, setShowUnderDevelopmentModal] =
@@ -151,8 +155,8 @@ export function Navbar({ setIsSidebarCollapsed, handleLogout, handleNavigate }: 
     { name: "Naveen Kumar, Pantamvari", month: "July" },
     { name: "Belthangadi, Bhavya", month: "August" },
     { name: "K, Sreenivasulu", month: "September" },
-    { name: "Santhosh, Agnello", month: "October" },
-    { name: "KK", month: "November" },
+    { name: "Gopala Kolla", month: "October" },
+    { name: "Krishna Murthy, Kaliswara", month: "November" },
     { name: "P, Saranya", month: "December" },
   ];
 
